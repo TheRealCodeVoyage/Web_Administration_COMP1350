@@ -104,9 +104,3 @@ A short peer-assessment form is submitted individually alongside the Final Deliv
 ## Academic Integrity
 
 Using AI tools (including Claude, ChatGPT, or GitHub Copilot) to help write code, debug configs, or draft documentation is permitted and expected — this mirrors how junior developers actually work. What is not permitted is submitting infrastructure you don't understand: any team member should be able to explain, live, what any line of their Nginx/HAProxy config or OAuth flow does. Milestone write-ups must be in your own words even if a tool helped you get there.
-
----
-
-## Source Note
-
-This project consolidates ACIT 3475's two separate projects — Project 1 (*Research and Deployment of a Professional Portfolio Web Server*, built around the Caddy web server) and Project 2 (*High-Availability Portfolio with OAuth and GitHub Contributions*) — into a single milestone-based project spanning the whole term, matching COMP 1350's own week-by-week technical progression. The Caddy-specific research component from Project 1 (Part 1: a graded video presentation comparing Caddy/Apache/Nginx) has been dropped, since Caddy is not part of COMP 1350's outline; its grading weight has been redistributed across the four milestones above. All other technical requirements (TLS, OAuth, HAProxy load balancing, GitHub contributions widget, scalability documentation) are retained, resequenced to match when each skill is actually taught.
