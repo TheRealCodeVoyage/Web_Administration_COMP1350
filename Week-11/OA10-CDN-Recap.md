@@ -1,0 +1,25 @@
+# Online Activity 10: CDN Recap
+
+*COMP 1350 — Web Administration — distributed Week 10, due before Week 11*
+
+## Why This Matters
+
+Load balancing and redundancy (Weeks 9-10) solved availability within your own infrastructure. Week 11 zooms out: how do you make your site fast for a user on the other side of the planet from your server? This activity introduces the idea before class.
+
+## Before Class: Read
+
+- [Cloudflare Learning Center — What is a CDN?](https://www.cloudflare.com/learning/cdn/what-is-a-cdn/) — the core explainer
+- [Cloudflare Learning Center — How does a CDN work?](https://www.cloudflare.com/learning/cdn/how-does-a-cdn-work/) — the mechanics (edge servers, caching, origin)
+- [jsDelivr — About](https://www.jsdelivr.com/) — skim the homepage; this is the free CDN you'll use in Wednesday's lab
+
+## Come to Class Ready to Answer
+
+1. In your own words, what problem does a CDN solve that a load balancer (Week 9) does not?
+2. What is an "edge server" or "point of presence," and how is it different from your "origin" server?
+3. A CDN mostly helps with *static* assets (images, CSS, JS) rather than dynamic, personalized content. Why do you think that distinction matters?
+4. Name one thing a CDN can do for security (beyond just speed) — the Cloudflare reading touches on this.
+
+## How This Feeds Forward
+
+- These questions form part of **Quiz 10**, given in Week 11.
+- Week 11's lecture and lab have you measure real latency differences serving assets locally vs. via jsDelivr, then set up Cloudflare's free tier in front of a live site.

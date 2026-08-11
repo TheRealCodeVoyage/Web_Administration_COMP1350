@@ -1,0 +1,25 @@
+# Online Activity 2: Apache vs. Nginx Recap
+
+*COMP 1350 — Web Administration — distributed Week 1, due before Week 2*
+
+## Why This Matters
+
+You've now seen the request/response basics. Week 2 puts two real web servers side by side. This activity previews the single biggest architectural difference between them so you walk in already knowing what to look for.
+
+## Before Class: Read
+
+- [nginx.org — Beginner's Guide](https://nginx.org/en/docs/beginners_guide.html) — read the "Serving Static Content" section this time
+- [httpd.apache.org — Apache HTTP Server: A Brief History](https://httpd.apache.org/ABOUT_APACHE.html) — short background on why Apache exists and how it's organized
+- [DigitalOcean — Apache vs Nginx: Practical Considerations](https://www.digitaloceanapache.com) *(if this link is unavailable, search "DigitalOcean Apache vs Nginx" — it's a well-known community tutorial)*
+
+## Come to Class Ready to Answer
+
+1. Apache is described as "process/thread-per-connection" and Nginx as "event-driven, asynchronous." In your own words, what does each of those phrases actually mean for how the server handles 1,000 simultaneous visitors?
+2. Which of the two would you expect to use less memory under heavy concurrent load, and why?
+3. Apache uses `.htaccess` files for per-directory configuration overrides. Nginx does not support `.htaccess` at all. What trade-off does that represent (hint: think about performance vs. flexibility)?
+4. Name one thing Nginx does "out of the box" beyond serving static files (this week's lecture will name a few).
+
+## How This Feeds Forward
+
+- These questions form part of **Quiz 2**, given in Week 2.
+- Week 2's lecture and lab put both servers on VMs side by side so you can test your predictions from question 2 for real.

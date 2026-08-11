@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# COMP 1350 — files that must NEVER be committed to a public repository.
+#
+# Anything matched here stays on your machine only. Git never tracks it, so it
+# cannot reach GitHub even though it lives inside the repo folder.
+#
+# Before the first push, verify with:  git status --ignored
+# ---------------------------------------------------------------------------
+
+# --- Assessment material (quizzes contain inline ANSWER KEYS) ---
+*Quiz*.md
+*Quiz*.pdf
+*Quiz*.docx
+*Test*.md
+*Test*.pdf
+*Test*.docx
+*Exam*.md
+*Exam*.pdf
+*Exam*.docx
+*Midterm*
+*Answer*
+*_Key.*
+*Key_Solution*
+*Solution*
+*Solutions*
+
+# --- Slides (not published to the site) ---
+*.pptx
+*.potx
+*.ppt
+*.key
+*.pdf
+
+# --- Internal planning / instructor-only documents ---
+COMP1350_Course_Outline.md
+COMP1350_Implementation_Plan.md
+COMP1350_Weekly_Timetable.md
+Course_Comparison_and_Recommendations.md
+archive/
+
+# --- Jekyll build artifacts ---
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/vendor/
+.bundle/
+Gemfile.lock
+
+# --- OS / editor cruft ---
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~

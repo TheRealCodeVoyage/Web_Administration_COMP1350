@@ -1,0 +1,25 @@
+# Online Activity 4: Deployment Models Recap
+
+*COMP 1350 — Web Administration — distributed Week 3, due before Week 4*
+
+## Why This Matters
+
+Everything you've built so far only exists on your own VM. Week 4 is about getting it onto the actual internet. This activity previews the two fundamentally different ways to do that, so the lecture's comparison lands faster.
+
+## Before Class: Read
+
+- [MDN — Publishing your website](https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Environment_setup/Publishing_your_website) — short overview of what "deploying" a site actually means
+- [GitHub Docs — What is GitHub Pages?](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages) — read the "About GitHub Pages" section
+- [Render Docs — What is Render?](https://render.com/docs) — skim the homepage/overview only, just to see what a modern PaaS looks like
+
+## Come to Class Ready to Answer
+
+1. What does "deployment" mean, in your own words, beyond just "the code is online somewhere"?
+2. GitHub Pages can only serve static files — no server-side code execution. Why might that actually be a *feature*, not just a limitation, for certain kinds of projects?
+3. A Platform-as-a-Service (PaaS) like Render handles the OS, web server, and scaling for you. What do you give up in exchange for that convenience?
+4. What do you think "push to deploy" means, based on the GitHub Pages reading?
+
+## How This Feeds Forward
+
+- These questions form part of **Quiz 4**, given in Week 4.
+- Week 4's lecture (and your group project brief, released this same week) will have you deploy a static site to GitHub Pages and your Node app to a real PaaS provider.

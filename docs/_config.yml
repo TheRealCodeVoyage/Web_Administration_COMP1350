@@ -1,0 +1,20 @@
+theme: jekyll-theme-slate
+
+title: COMP 1350 Labs
+description: >-
+  Labs, online activities, and the group project for BCIT COMP 1350 —
+  Web Administration.
+
+# IMPORTANT: baseurl must match your GitHub repository name exactly, or the
+# theme's CSS and all internal links will 404 on the published site.
+# (For a user/organization site at <user>.github.io, set baseurl to "".)
+baseurl: "/COMP1350-WebAdmin"
+
+# Slate shows .zip/.tar.gz download buttons by default — off for a course site.
+show_downloads: false
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor

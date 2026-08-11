@@ -1,0 +1,25 @@
+# Online Activity 8: Load Balancing Recap
+
+*COMP 1350 — Web Administration — distributed Week 7, due before Week 9 (spans the midterm week)*
+
+## Why This Matters
+
+The midterm covers everything through Week 7 — one server, one app, done right. Week 9 shifts the entire frame: what happens when one server isn't enough, or isn't enough to guarantee uptime. This activity gets you thinking in those terms before we resume after the midterm break.
+
+## Before Class: Read
+
+- [Cloudflare Learning Center — What is load balancing?](https://www.cloudflare.com/learning/performance/what-is-load-balancing/) — short overview
+- [NGINX Docs — Load Balancing with NGINX](https://nginx.org/en/docs/http/load_balancing.html) — read the "round robin" and "least connections" sections
+- [HAProxy — What is HAProxy?](https://www.haproxy.org/) — skim the homepage for the project's own framing
+
+## Come to Class Ready to Answer
+
+1. Why can't you just keep making a single server "bigger" (more CPU/RAM) forever? What does "horizontal scaling" mean as an alternative to that?
+2. What does "round robin" load balancing mean, in your own words? Can you think of a case where it might send more traffic to a slower or already-overloaded server than it should?
+3. What does a load balancer "health check" do, and why is it necessary — what would happen without one?
+4. Both Nginx and a dedicated tool like HAProxy can do load balancing. Based on what you already know about Nginx (Weeks 2 and 6), why might a team still choose a separate, dedicated load balancer instead of just using Nginx for everything?
+
+## How This Feeds Forward
+
+- These questions form part of **Quiz 8**, given in Week 9 (there is no quiz during the midterm week).
+- Week 9's lecture and lab put two backend servers behind both an HAProxy load balancer and Nginx's own `upstream` module, so you can compare them directly.
