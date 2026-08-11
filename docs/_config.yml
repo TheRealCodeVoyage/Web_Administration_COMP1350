@@ -8,7 +8,7 @@ description: >-
 # IMPORTANT: baseurl must match your GitHub repository name exactly, or the
 # theme's CSS and all internal links will 404 on the published site.
 # (For a user/organization site at <user>.github.io, set baseurl to "".)
-baseurl: "/COMP1350-WebAdmin"
+baseurl: "/Web_Administration_COMP1350"
 
 # Slate shows .zip/.tar.gz download buttons by default — off for a course site.
 show_downloads: false
