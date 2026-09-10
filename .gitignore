@@ -30,6 +30,7 @@
 *.ppt
 *.key
 *.pdf
+*.csv
 
 # --- Internal planning / instructor-only documents ---
 COMP1350_Course_Outline.md
@@ -37,6 +38,8 @@ COMP1350_Implementation_Plan.md
 COMP1350_Weekly_Timetable.md
 Course_Comparison_and_Recommendations.md
 archive/
+scripts/
+assets/
 
 # --- Jekyll build artifacts ---
 docs/_site/
