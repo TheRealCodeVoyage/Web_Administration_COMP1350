@@ -1,228 +1,204 @@
 ---
-title: "Lab 7: OAuth Login with Passport.js"
+title: "Lab 7: Load Balancing with HAProxy"
 ---
 
 [&larr; Back to course index]({{ '/' | relative_url }})
 
 {% raw %}
-# Lab 7: OAuth Login with Passport.js
+# Lab 7: Load Balancing with HAProxy
 
-*COMP 1350 — Web Administration, Week 7*
+*COMP 1350 — Web Administration, Week 9*
 
-In this lab you'll add "Sign in with Google" to your Node/Express app using Passport.js — implementing the OAuth flow covered in this week's lecture end to end, on your own running application.
+Welcome back from the midterm. In this lab you'll build a real load-balanced setup — one HAProxy VM in front of two backend web servers — test multiple balancing algorithms, and then compare HAProxy directly against Nginx's built-in `upstream` module doing the same job.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in **all three** VM definitions, add a `vmware_desktop` provider block to each instead of relying on VirtualBox, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
-## Part 1: Provision the VM
+## Part 1: Provision Three VMs
 
 ```bash
 mkdir ~/comp1350-lab7 && cd ~/comp1350-lab7
-vagrant init ubuntu/jammy64
+vagrant init
 ```
 
-Add to the `Vagrantfile`:
+Replace the `Vagrantfile`:
 
 ```ruby
-config.vm.network "private_network", ip: "192.168.56.17"
+Vagrant.configure("2") do |config|
+  config.vm.define "backend1" do |b1|
+    b1.vm.box = "ubuntu/jammy64"
+    b1.vm.hostname = "backend1"
+    b1.vm.network "private_network", ip: "192.168.56.21"
+  end
+
+  config.vm.define "backend2" do |b2|
+    b2.vm.box = "ubuntu/jammy64"
+    b2.vm.hostname = "backend2"
+    b2.vm.network "private_network", ip: "192.168.56.22"
+  end
+
+  config.vm.define "lb" do |lb|
+    lb.vm.box = "ubuntu/jammy64"
+    lb.vm.hostname = "lb"
+    lb.vm.network "private_network", ip: "192.168.56.20"
+  end
+end
 ```
 
 ```bash
 vagrant up
-vagrant ssh
+```
+
+## Part 2: Set Up the Backend Servers
+
+*On both `backend1` and `backend2` (`vagrant ssh backend1`, then repeat on `backend2`):*
+
+```bash
 sudo apt update
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+sudo apt install nginx -y
 ```
 
-1. On your **host machine**, map a domain name to this VM so Google's OAuth redirect works cleanly (OAuth providers are picky about `localhost`/raw IPs for redirect URIs):
-
-```
-192.168.56.17 wsa-lab7.local
-```
-
-## Part 2: Scaffold the Express App
+Make each backend identify itself so you can see load balancing actually working:
 
 ```bash
-sudo npm install -g express-generator
-express lab7-oauth
-cd lab7-oauth
-npm install
+# on backend1:
+echo "Hello from backend1 (192.168.56.21)" | sudo tee /var/www/html/index.html
+
+# on backend2:
+echo "Hello from backend2 (192.168.56.22)" | sudo tee /var/www/html/index.html
 ```
 
-1. Start it and confirm the default page loads at `http://wsa-lab7.local:3000` from your host browser:
+Confirm each responds directly:
 
 ```bash
-npm start
+curl http://192.168.56.21
+curl http://192.168.56.22
 ```
 
-2. Stop the server (Ctrl+C). Install `ejs` as the view engine and switch the default view files over:
+## Part 3: Install and Configure HAProxy
+
+*On `lb`:*
 
 ```bash
-npm install ejs
-mv views/index.jade views/index.ejs
-mv views/error.jade views/error.ejs
+sudo apt update
+sudo apt install haproxy -y
+sudo nano /etc/haproxy/haproxy.cfg
 ```
 
-3. Replace `views/index.ejs` with:
+Add to the end of the file:
 
-```html
-<html>
-  <body>
-    <%= title %>
-  </body>
-</html>
+```haproxy
+frontend http_front
+    bind *:80
+    stats uri /haproxy?stats
+    default_backend app_servers
+
+backend app_servers
+    balance roundrobin
+    server backend1 192.168.56.21:80 check
+    server backend2 192.168.56.22:80 check
 ```
 
-## Part 3: Register OAuth Credentials with Google
-
-1. Go to [console.developers.google.com](https://console.developers.google.com/project) and create a new project named `wsa-lab7`.
-2. From the sidebar, go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email for support/developer contact, and accept defaults for the remaining screens.
-3. Go to **Credentials → Create Credentials → OAuth client ID**. Choose **Web application** and fill in:
-   - **Name**: `wsa-lab7`
-   - **Authorized JavaScript origins**: `http://wsa-lab7.local`
-   - **Authorized redirect URIs**: `http://wsa-lab7.local:3000/auth/google/callback`
-4. Click **Create**. Copy the **Client ID** and **Client Secret** shown in the popup — you'll need both in Part 4.
-
-**Never commit these values to Git.** In Part 4 you'll load them from environment variables, exactly like the PaaS environment-variable practice from Week 4.
-
-## Part 4: Install Passport and the Google Strategy
-
-1. Install the required packages:
+Restart HAProxy:
 
 ```bash
-npm install passport express-session passport-google-oauth20 --save
+sudo systemctl restart haproxy
 ```
 
-2. Set your credentials as environment variables (don't hardcode them):
+## Part 4: Test Round Robin
+
+From your host machine (or from `lb` itself), hit the load balancer repeatedly:
 
 ```bash
-export GOOGLE_CLIENT_ID="your-client-id-here"
-export GOOGLE_CLIENT_SECRET="your-client-secret-here"
+for i in {1..6}; do curl http://192.168.56.20; done
 ```
 
-3. Near the top of `app.js`, add:
+You should see the response alternate between `backend1` and `backend2`.
 
-```js
-var passport = require('passport');
-var session = require('express-session');
-var GoogleStrategy = require('passport-google-oauth20').Strategy;
+## Part 5: Test Least Connections and Weighted Round Robin
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://wsa-lab7.local:3000/auth/google/callback'
-  },
-  function(accessToken, refreshToken, profile, cb) {
-    cb(null, profile);
-  }
-));
-```
-
-4. Right after the Express app is created, add:
-
-```js
-app.use(session({ secret: 'comp1350-lab7-secret' }));
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.serializeUser(function(user, done) { done(null, user); });
-passport.deserializeUser(function(user, done) { done(null, user); });
-```
-
-## Part 5: Add the Auth Routes
-
-1. Near the other route imports in `app.js`:
-
-```js
-var auth = require('./routes/auth');
-```
-
-2. Alongside the other `app.use('/...')` lines:
-
-```js
-app.use('/auth', auth);
-```
-
-3. Create `routes/auth.js`:
-
-```js
-var express = require('express');
-var passport = require('passport');
-var router = express.Router();
-
-router.route('/google').get(
-  passport.authenticate('google', {
-    scope: ['profile', 'email']
-  })
-);
-
-router.route('/google/callback').get(
-  passport.authenticate('google', { failureRedirect: '/' }),
-  function(req, res) {
-    res.redirect('/');
-  }
-);
-
-module.exports = router;
-```
-
-4. Create `views/users.ejs`:
-
-```html
-<html>
-  <body>
-    <div>Hi <%= username %></div>
-  </body>
-</html>
-```
-
-5. Replace `routes/index.js`:
-
-```js
-var express = require('express');
-var router = express.Router();
-
-router.get('/', function(req, res) {
-  if (req.user && req.user.displayName) {
-    res.render('users', { username: req.user.displayName });
-  } else {
-    res.render('index', { title: 'wsa-lab7' });
-  }
-});
-
-module.exports = router;
-```
-
-6. Update `views/index.ejs` to add a login link:
-
-```html
-<html>
-  <body>
-    <%= title %>
-    <ul>
-      <li><a href="/auth/google">Sign in with Google</a></li>
-    </ul>
-  </body>
-</html>
-```
-
-## Part 6: Test the Full Flow
-
-1. Restart the app with your environment variables set:
+1. Change `balance roundrobin` to `balance leastconn`, restart HAProxy, and re-test:
 
 ```bash
-GOOGLE_CLIENT_ID="..." GOOGLE_CLIENT_SECRET="..." npm start
+sudo systemctl restart haproxy
 ```
 
-2. From your host browser, visit `http://wsa-lab7.local:3000` and click **Sign in with Google**.
-3. Complete the Google login/consent screen. You should be redirected back and see "Hi `<your name>`".
+2. Now try weighting the servers unevenly — `backend1` should receive roughly twice the traffic of `backend2`:
 
-**Q1**: At what point in this flow did your app ever see your Google password? Trace through exactly which party (browser, your app, Google) held which piece of information at each step.
+```haproxy
+backend app_servers
+    balance roundrobin
+    server backend1 192.168.56.21:80 check weight 2
+    server backend2 192.168.56.22:80 check weight 1
+```
+
+3. Restart and run the loop from Part 4 with a higher count (`{1..20}`) to see the 2:1 pattern emerge.
+
+## Part 6: Health Checks
+
+1. Simulate a backend failure:
+
+```bash
+vagrant ssh backend2 -c "sudo systemctl stop nginx"
+```
+
+2. Open `http://192.168.56.20/haproxy?stats` in your host browser. Confirm `backend2` shows as **DOWN** and that all traffic now goes to `backend1` only.
+
+3. Bring `backend2` back and confirm it returns to **UP**:
+
+```bash
+vagrant ssh backend2 -c "sudo systemctl start nginx"
+```
+
+## Part 7: Nginx as a Load Balancer — the Alternative
+
+*Provision a fourth VM, or repurpose one you're not using, to compare Nginx's `upstream` module doing the identical job.*
+
+```bash
+vagrant ssh lb
+sudo apt install nginx -y
+sudo systemctl stop haproxy
+```
+
+```bash
+sudo nano /etc/nginx/sites-available/lb
+```
+
+```nginx
+upstream backend_servers {
+    least_conn;
+    server 192.168.56.21;
+    server 192.168.56.22;
+}
+
+server {
+    listen 8080;
+    location / {
+        proxy_pass http://backend_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/lb /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+Test it the same way as Part 4, against port 8080:
+
+```bash
+for i in {1..6}; do curl http://192.168.56.20:8080; done
+```
+
+**Q1**: HAProxy has a dedicated stats page built in. What would you need to add to get equivalent visibility (which backend is healthy, current connection counts) out of the Nginx setup?
 
 ## Deliverables
 
-- Screenshot of the login page with the "Sign in with Google" link
-- Screenshot of the post-login "Hi `<your name>`" page
-- Your `app.js` OAuth configuration section (with credentials redacted/shown as environment variable references, never as literal strings)
+- Screenshot of the round-robin test alternating between both backends
+- Screenshot of the HAProxy stats page (`/haproxy?stats`) showing one backend marked DOWN during the health-check test
+- Your final `haproxy.cfg` `backend` block with weights configured
+- Output of the Nginx `upstream` test from Part 7
 - Your written answer to Q1
 {% endraw %}

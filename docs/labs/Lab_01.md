@@ -1,154 +1,201 @@
 ---
-title: "Lab 1: Development VM Setup with VirtualBox & Vagrant"
+title: "Lab 1: Apache & Nginx Side-by-Side"
 ---
 
 [&larr; Back to course index]({{ '/' | relative_url }})
 
 {% raw %}
-# Lab 1: Development VM Setup with VirtualBox & Vagrant
+# Lab 1: Apache & Nginx Side-by-Side
 
-*COMP 1350 — Web Administration, Week 1*
+*COMP 1350 — Web Administration, Week 2*
 
-Every lab this term happens inside a disposable Linux VM you can rebuild in minutes. In this lab you'll install VirtualBox and Vagrant, provision your first VM, and learn the reset workflow you'll rely on for the rest of the course.
+In this lab you'll install Apache and Nginx on separate Vagrant VMs, configure a virtual host on each, and directly compare how the two handle the same job — reinforcing this week's "same job, different architecture" theme.
 
-## Part 1: Install VirtualBox
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
-1. Download VirtualBox for your OS from [virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads) and run the installer, accepting the defaults.
-2. On Windows, if prompted, also enable **Hyper-V** exclusion or install the **VirtualBox Extension Pack** if you plan to use USB passthrough later (not required for this course).
-3. **Apple Silicon Mac (M1/M2/M3/M4):** make sure you install **version 7.1 or later** — that's the first line to officially support Apple Silicon as both host and guest. If you already have an older VirtualBox installed, uninstall it first and grab the current release from the link above.
-4. Verify the install:
+## Part 1: Provision Two VMs
 
-```bash
-VBoxManage --version
-```
-
-## Part 2: Install Vagrant
-
-1. Download Vagrant for your OS from [vagrantup.com/downloads](https://www.vagrantup.com/downloads) and run the installer.
-2. Verify the install:
-
-```bash
-vagrant --version
-```
-
-3. Vagrant needs a "provider" to actually run VMs — that's VirtualBox, which you just installed. Confirm Vagrant can see it:
-
-```bash
-vagrant plugin list
-```
-
-## Part 3: Provision Your First VM
-
-1. Create a directory for this lab and initialize a Vagrant project:
+1. From a new lab directory, create a `Vagrantfile` that defines two VMs at once:
 
 ```bash
 mkdir ~/comp1350-lab1 && cd ~/comp1350-lab1
-vagrant init bento/ubuntu-22.04
+vagrant init
 ```
 
-   This creates a `Vagrantfile` — the configuration file that describes your VM (base image, RAM, CPUs, networking, shared folders). We use the `bento/ubuntu-22.04` box (rather than Canonical's own `ubuntu/jammy64`) because it publishes both an `amd64` build (Intel/AMD machines — Windows, Linux, Intel Macs) and an `arm64` build (Apple Silicon Macs) for the VirtualBox provider. Vagrant automatically detects your machine's CPU architecture and downloads the matching one — everyone in this course runs the exact same command and gets a working VM, regardless of what laptop they're on.
-
-2. Open the `Vagrantfile` and set a private network IP so you can reach the VM at a fixed address all term. Find the commented-out line for `config.vm.network "private_network"` and uncomment it with a static IP:
+2. Replace the `Vagrantfile` contents with:
 
 ```ruby
-config.vm.network "private_network", ip: "192.168.56.10"
-```
+Vagrant.configure("2") do |config|
+  config.vm.define "apache-server" do |apache|
+    apache.vm.box = "ubuntu/jammy64"
+    apache.vm.hostname = "apache-server"
+    apache.vm.network "private_network", ip: "192.168.56.11"
+  end
 
-3. While you're in there, bump the VM's resources for the heavier labs later this term (reverse proxy, load balancing):
-
-```ruby
-config.vm.provider "virtualbox" do |vb|
-  vb.memory = "2048"
-  vb.cpus = 2
+  config.vm.define "nginx-server" do |nginx|
+    nginx.vm.box = "ubuntu/jammy64"
+    nginx.vm.hostname = "nginx-server"
+    nginx.vm.network "private_network", ip: "192.168.56.12"
+  end
 end
 ```
 
-4. Bring the VM up:
+3. Bring both VMs up:
 
 ```bash
 vagrant up
 ```
 
-   The first run downloads the `bento/ubuntu-22.04` base box (a few hundred MB) — this only happens once; future `vagrant up` calls reuse the cached box.
+## Part 2: Apache Web Server
 
-5. SSH into your new VM:
+*SSH into `apache-server`: `vagrant ssh apache-server`*
 
-```bash
-vagrant ssh
-```
-
-6. Confirm you're inside a real, isolated Ubuntu system:
-
-```bash
-lsb_release -a
-hostname
-ip addr show
-```
-
-7. Update the package index and confirm internet access from inside the VM:
+1. Update packages and install Apache:
 
 ```bash
 sudo apt update
+sudo apt install apache2 -y
 ```
 
-## Part 4: The Reset Workflow
-
-This is the single most useful Vagrant habit for this course — being able to throw away a broken VM and start clean in under two minutes.
-
-1. Exit the VM and check its status:
+2. Confirm it's running:
 
 ```bash
-exit
-vagrant status
+sudo systemctl status apache2
 ```
 
-2. Suspend it (fast, preserves RAM state — good for a lunch break):
+3. From your host machine, browse to `http://192.168.56.11` — you should see the default Apache welcome page.
+
+4. Replace the default page with a custom one:
 
 ```bash
-vagrant suspend
-vagrant resume
+sudo rm /var/www/html/index.html
+echo "<h1>Served by Apache</h1>" | sudo tee /var/www/html/index.html
 ```
 
-3. Halt it (clean shutdown, like powering off a real machine):
+5. Set up a named virtual host. Create a site directory and page:
 
 ```bash
-vagrant halt
-vagrant up
+sudo mkdir /var/www/mysite
+echo "<h1>My Site on Apache</h1>" | sudo tee /var/www/mysite/index.html
 ```
 
-4. Destroy and rebuild it from scratch (use this whenever a lab goes sideways and you'd rather start over than debug someone else's broken state):
+6. Create the virtual host config:
 
 ```bash
-vagrant destroy -f
-vagrant up
+sudo nano /etc/apache2/sites-available/mysite.conf
 ```
 
-5. Confirm your custom IP survived the rebuild:
+```apache
+<VirtualHost *:80>
+    ServerName mysite.local
+    DocumentRoot /var/www/mysite
+    ErrorLog ${APACHE_LOG_DIR}/mysite-error.log
+    CustomLog ${APACHE_LOG_DIR}/mysite-access.log combined
+</VirtualHost>
+```
+
+7. Enable the site and reload:
 
 ```bash
-vagrant ssh -c "ip addr show | grep 192.168.56.10"
+sudo a2ensite mysite.conf
+sudo apachectl configtest
+sudo systemctl reload apache2
 ```
 
-## Part 5: Shared Folders (Editing Files from Your Host)
+8. On your **host machine**, add a hosts-file entry mapping `mysite.local` to `192.168.56.11`, then browse to `http://mysite.local` and confirm you see "My Site on Apache".
+   - Windows: `C:\Windows\System32\drivers\etc\hosts`
+   - macOS/Linux: `/etc/hosts`
 
-1. By default, Vagrant syncs your project directory (`~/comp1350-lab1` on your host) to `/vagrant` inside the VM. Confirm this:
+9. Enable a module (`mod_rewrite`) and note that Apache requires a restart to load new modules:
 
 ```bash
-vagrant ssh -c "ls /vagrant"
+sudo a2enmod rewrite
+sudo systemctl restart apache2
 ```
 
-2. Create a file on your host machine in that folder using your normal text editor, then confirm it appears inside the VM without any extra steps:
+## Part 3: Nginx Web Server
+
+*SSH into `nginx-server`: `vagrant ssh nginx-server`*
+
+1. Update packages and install Nginx:
 
 ```bash
-vagrant ssh -c "cat /vagrant/hello.txt"
+sudo apt update
+sudo apt install nginx -y
 ```
 
-   This is how you'll edit code all term: files in your host editor, commands run inside the VM via `vagrant ssh`.
+2. Confirm it's running:
+
+```bash
+sudo systemctl status nginx
+```
+
+3. From your host machine, browse to `http://192.168.56.12` — you should see the default Nginx welcome page.
+
+4. Create a virtual host (Nginx calls these "server blocks"):
+
+```bash
+sudo mkdir -p /var/www/mysite
+echo "<h1>My Site on Nginx</h1>" | sudo tee /var/www/mysite/index.html
+```
+
+```bash
+sudo nano /etc/nginx/sites-available/mysite
+```
+
+```nginx
+server {
+    listen 80;
+    server_name mysite.local;
+    root /var/www/mysite;
+    index index.html;
+}
+```
+
+5. Enable the site with a symlink, test the config, and reload:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/mysite /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+6. On your host machine, point `mysite.local` at `192.168.56.12` instead (edit the hosts file entry from Part 2), and confirm you see "My Site on Nginx".
+
+7. Enable gzip compression — a good example of Nginx's directive-driven config style:
+
+```bash
+sudo nano /etc/nginx/nginx.conf
+```
+
+```nginx
+gzip on;
+gzip_types text/plain text/css application/json application/javascript;
+```
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Part 4: Side-by-Side Comparison
+
+Fill in this table from your own observations across Parts 2–3:
+
+| Aspect | Apache | Nginx |
+|---|---|---|
+| Config file format | ? | ? |
+| Enabling a new site | `a2ensite` + reload | symlink into `sites-enabled` + reload |
+| Enabling a module | `a2enmod` + **restart** | built into the binary, no separate enable step |
+| Config syntax check command | `apachectl configtest` | `nginx -t` |
+| Process model (check with `ps aux \| grep`) | ? | ? |
+
+Use `ps aux | grep apache2` on `apache-server` and `ps aux | grep nginx` on `nginx-server` to fill in the process-model row — count how many processes each shows and note what you observe.
 
 ## Deliverables
 
-- Output of `vagrant status` showing the VM `running`
-- Output of `ip addr show` from inside the VM, showing your static `192.168.56.10` address
-- Screenshot of a file created on your host machine appearing inside the VM via the shared `/vagrant` folder
-- One paragraph: why is `vagrant destroy && vagrant up` a safer habit than trying to manually fix a broken VM, especially under a lab time limit?
+- Screenshots of both custom virtual hosts loading correctly by domain name (`mysite.local` resolving to each server in turn)
+- Your completed comparison table from Part 4
+- The `mysite.conf` (Apache) and `mysite` (Nginx) virtual host files
+- One paragraph: based on the process-model difference you observed, which architecture do you think would use less memory under heavy concurrent load, and why?
 {% endraw %}

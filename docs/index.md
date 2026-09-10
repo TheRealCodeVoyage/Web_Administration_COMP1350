@@ -10,19 +10,19 @@ Everything students need for hands-on work lives here. Slides, quizzes, and exam
 
 ## Labs Index
 
-| # | Lab | Week |
+| Week | Lab # | Lab |
 |---|---|---|
-| 1 | [Development VM Setup with VirtualBox & Vagrant](labs/Lab_01.html) | Week 1 |
-| 2 | [Apache & Nginx Side-by-Side](labs/Lab_02.html) | Week 2 |
-| 3 | [IIS & Node.js/Express.js with PM2](labs/Lab_03.html) | Week 3 |
-| 4 | [Deployment — GitHub Pages & Modern PaaS](labs/Lab_04.html) | Week 4 |
-| 5 | [SSL/TLS — Self-Signed Certificates & Let's Encrypt](labs/Lab_05.html) | Week 5 |
-| 6 | [Reverse Proxy Terminating TLS](labs/Lab_06.html) | Week 6 |
-| 7 | [OAuth Login with Passport.js](labs/Lab_07.html) | Week 7 |
-| 8 | [Load Balancing with HAProxy](labs/Lab_08.html) | Week 9 |
-| 9 | [Eliminating Single Points of Failure](labs/Lab_09.html) | Week 10 |
-| 10 | [CDN — jsDelivr Latency Test & Cloudflare Setup](labs/Lab_10.html) | Week 11 |
-| 11 | [Centralized Logging](labs/Lab_11.html) | Week 12 |
+| Week 1 | 0 | [Development VM Setup with VirtualBox & Vagrant](labs/Lab_00.html) |
+| Week 2 | 1 | [Apache & Nginx Side-by-Side](labs/Lab_01.html) |
+| Week 3 | 2 | [IIS & Node.js/Express.js with PM2](labs/Lab_02.html) |
+| Week 4 | 3 | [Deployment — GitHub Pages & Modern PaaS](labs/Lab_03.html) |
+| Week 5 | 4 | [SSL/TLS — Self-Signed Certificates & Let's Encrypt](labs/Lab_04.html) |
+| Week 6 | 5 | [Reverse Proxy Terminating TLS](labs/Lab_05.html) |
+| Week 7 | 6 | [OAuth Login with Passport.js](labs/Lab_06.html) |
+| Week 9 | 7 | [Load Balancing with HAProxy](labs/Lab_07.html) |
+| Week 10 | 8 | [Eliminating Single Points of Failure](labs/Lab_08.html) |
+| Week 11 | 9 | [CDN — jsDelivr Latency Test & Cloudflare Setup](labs/Lab_09.html) |
+| Week 12 | 10 | [Centralized Logging](labs/Lab_10.html) |
 
 ## Online Activities (Flipped Material)
 
@@ -90,4 +90,4 @@ By the end of this course, students will be able to:
 
 ## Getting Started
 
-Start with [Lab 1](labs/Lab_01.html), which sets up the VirtualBox and Vagrant environment every later lab depends on. Complete it before Week 2 — the labs build on each other, and a broken environment in Week 1 becomes a broken lab in Week 6.
+Start with [Lab 0](labs/Lab_00.html), which sets up the VirtualBox and Vagrant environment every later lab depends on. Complete it before Week 2 — the labs build on each other, and a broken environment in Week 1 becomes a broken lab in Week 6.

@@ -1,4 +1,4 @@
-# Lab 1: Development VM Setup with VirtualBox & Vagrant
+# Lab 0: Development VM Setup with VirtualBox & Vagrant
 
 *COMP 1350 — Web Administration, Week 1*
 
@@ -35,7 +35,7 @@ vagrant plugin list
 1. Create a directory for this lab and initialize a Vagrant project:
 
 ```bash
-mkdir ~/comp1350-lab1 && cd ~/comp1350-lab1
+mkdir ~/comp1350-lab0 && cd ~/comp1350-lab0
 vagrant init bento/ubuntu-22.04
 ```
 
@@ -124,7 +124,7 @@ vagrant ssh -c "ip addr show | grep 192.168.56.10"
 
 ## Part 5: Shared Folders (Editing Files from Your Host)
 
-1. By default, Vagrant syncs your project directory (`~/comp1350-lab1` on your host) to `/vagrant` inside the VM. Confirm this:
+1. By default, Vagrant syncs your project directory (`~/comp1350-lab0` on your host) to `/vagrant` inside the VM. Confirm this:
 
 ```bash
 vagrant ssh -c "ls /vagrant"

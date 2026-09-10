@@ -1,15 +1,15 @@
-# Lab 5: SSL/TLS — Self-Signed Certificates & Let's Encrypt
+# Lab 4: SSL/TLS — Self-Signed Certificates & Let's Encrypt
 
 *COMP 1350 — Web Administration, Week 5*
 
 In this lab you'll generate a self-signed TLS certificate by hand (to see every moving part), configure Nginx to serve HTTPS with it, then contrast that manual process with Certbot's fully automated Let's Encrypt workflow.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision the VM
 
 ```bash
-mkdir ~/comp1350-lab5 && cd ~/comp1350-lab5
+mkdir ~/comp1350-lab4 && cd ~/comp1350-lab4
 vagrant init ubuntu/jammy64
 ```
 

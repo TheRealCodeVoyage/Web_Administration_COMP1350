@@ -1,15 +1,15 @@
-# Lab 7: OAuth Login with Passport.js
+# Lab 6: OAuth Login with Passport.js
 
 *COMP 1350 — Web Administration, Week 7*
 
 In this lab you'll add "Sign in with Google" to your Node/Express app using Passport.js — implementing the OAuth flow covered in this week's lecture end to end, on your own running application.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision the VM
 
 ```bash
-mkdir ~/comp1350-lab7 && cd ~/comp1350-lab7
+mkdir ~/comp1350-lab6 && cd ~/comp1350-lab6
 vagrant init ubuntu/jammy64
 ```
 
@@ -114,7 +114,7 @@ passport.use(new GoogleStrategy({
 4. Right after the Express app is created, add:
 
 ```js
-app.use(session({ secret: 'comp1350-lab7-secret' }));
+app.use(session({ secret: 'comp1350-lab6-secret' }));
 app.use(passport.initialize());
 app.use(passport.session());
 

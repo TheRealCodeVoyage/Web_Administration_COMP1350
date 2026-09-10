@@ -1,4 +1,4 @@
-# Lab 3: IIS & Node.js/Express.js with PM2
+# Lab 2: IIS & Node.js/Express.js with PM2
 
 *COMP 1350 — Web Administration, Week 3*
 
@@ -33,7 +33,7 @@ In this lab you will configure IIS to serve a static site on Windows, then build
 
 *Do this part on your VirtualBox/Vagrant Linux VM.*
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — commands, config — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — commands, config — is identical.
 
 1. If you haven't already, provision a VM:
 

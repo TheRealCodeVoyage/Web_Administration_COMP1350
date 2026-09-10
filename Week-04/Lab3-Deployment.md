@@ -1,14 +1,14 @@
-# Lab 4: Deployment — GitHub Pages & Modern PaaS
+# Lab 3: Deployment — GitHub Pages & Modern PaaS
 
 *COMP 1350 — Web Administration, Week 4*
 
-In this lab you will deploy two things to the public internet: a static site via GitHub Pages, and the Node.js/Express application you built in Lab 3 via a modern PaaS provider (Render). By the end of this lab you will have a live, public URL for each.
+In this lab you will deploy two things to the public internet: a static site via GitHub Pages, and the Node.js/Express application you built in Lab 2 via a modern PaaS provider (Render). By the end of this lab you will have a live, public URL for each.
 
 ## Prerequisites
 
 - A [GitHub](https://github.com) account
 - Git installed and configured locally (`git config --global user.name` / `user.email` already set)
-- The Node.js/Express + PM2 project from Lab 3, committed to a local Git repository
+- The Node.js/Express + PM2 project from Lab 2, committed to a local Git repository
 - A free [Render](https://render.com) account (sign in with GitHub for the smoothest setup)
 
 ## Part 1: Deploy a Static Site to GitHub Pages
@@ -50,7 +50,7 @@ git push origin main
 
 ## Part 2: Deploy the Node/Express App to Render
 
-1. Push your Lab 3 Node/Express project to a **new** GitHub repository (`<yourname>-webapp`).
+1. Push your Lab 2 Node/Express project to a **new** GitHub repository (`<yourname>-webapp`).
 2. Confirm your `package.json` has a valid `start` script, e.g.:
 
 ```json

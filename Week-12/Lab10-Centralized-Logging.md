@@ -1,17 +1,10 @@
----
-title: "Lab 11: Centralized Logging"
----
-
-[&larr; Back to course index]({{ '/' | relative_url }})
-
-{% raw %}
-# Lab 11: Centralized Logging
+# Lab 10: Centralized Logging
 
 *COMP 1350 — Web Administration, Week 12*
 
 In this lab you will forward logs from an application server to a dedicated, central log-collector VM using rsyslog — closing the gap between "logs scattered across many servers" and an actual centralized log server. GA4 instrumentation for your group project (Milestone C) is assigned separately as take-home work; see the note at the end of this lab.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in both VM definitions, add a `vmware_desktop` provider block to each, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — commands, config — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in both VM definitions, add a `vmware_desktop` provider block to each, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — commands, config — is identical.
 
 ## Prerequisites
 
@@ -141,4 +134,3 @@ This is graded as part of the group project's **Milestone C**, not as part of th
 2. Add the `gtag.js` tracking snippet to every page (see lecture slides, Part 2).
 3. Instrument at least one custom event (e.g. a signup button, a project link click).
 4. In your Milestone C submission, include a screenshot of the GA4 Realtime report showing at least one tracked event from your own testing.
-{% endraw %}

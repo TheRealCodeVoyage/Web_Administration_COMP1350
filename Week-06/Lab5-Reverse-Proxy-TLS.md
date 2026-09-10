@@ -1,15 +1,15 @@
-# Lab 6: Reverse Proxy Terminating TLS
+# Lab 5: Reverse Proxy Terminating TLS
 
 *COMP 1350 — Web Administration, Week 6*
 
 This lab connects everything you've built so far: the Node/Express app from Week 3, the TLS certificate skills from Week 5, and this week's reverse-proxy concept — all in one working, HTTPS-secured application. This is also **Milestone A** of your group project.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision the VM
 
 ```bash
-mkdir ~/comp1350-lab6 && cd ~/comp1350-lab6
+mkdir ~/comp1350-lab5 && cd ~/comp1350-lab5
 vagrant init ubuntu/jammy64
 ```
 
@@ -71,7 +71,7 @@ curl http://127.0.0.1:3000
 
 ## Part 3: Generate a TLS Certificate
 
-*Reuse the process from Lab 5.*
+*Reuse the process from Lab 4.*
 
 ```bash
 sudo mkdir -p /etc/nginx/ssl_key && cd /etc/nginx/ssl_key

@@ -1,17 +1,17 @@
 ---
-title: "Lab 6: Reverse Proxy Terminating TLS"
+title: "Lab 6: OAuth Login with Passport.js"
 ---
 
 [&larr; Back to course index]({{ '/' | relative_url }})
 
 {% raw %}
-# Lab 6: Reverse Proxy Terminating TLS
+# Lab 6: OAuth Login with Passport.js
 
-*COMP 1350 — Web Administration, Week 6*
+*COMP 1350 — Web Administration, Week 7*
 
-This lab connects everything you've built so far: the Node/Express app from Week 3, the TLS certificate skills from Week 5, and this week's reverse-proxy concept — all in one working, HTTPS-secured application. This is also **Milestone A** of your group project.
+In this lab you'll add "Sign in with Google" to your Node/Express app using Passport.js — implementing the OAuth flow covered in this week's lecture end to end, on your own running application.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision the VM
 
@@ -23,153 +23,206 @@ vagrant init ubuntu/jammy64
 Add to the `Vagrantfile`:
 
 ```ruby
-config.vm.network "private_network", ip: "192.168.56.16"
+config.vm.network "private_network", ip: "192.168.56.17"
 ```
 
 ```bash
 vagrant up
 vagrant ssh
 sudo apt update
-sudo apt install nginx openssl -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
-sudo npm install -g pm2
 ```
 
-## Part 2: Bring Up the Node/Express Backend
+1. On your **host machine**, map a domain name to this VM so Google's OAuth redirect works cleanly (OAuth providers are picky about `localhost`/raw IPs for redirect URIs):
 
-1. Reuse (or recreate) your Week 3 Express app:
+```
+192.168.56.17 wsa-lab7.local
+```
+
+## Part 2: Scaffold the Express App
 
 ```bash
-mkdir ~/app && cd ~/app
-npm init -y
-npm install express
+sudo npm install -g express-generator
+express lab7-oauth
+cd lab7-oauth
+npm install
 ```
 
-2. Create `server.js`:
+1. Start it and confirm the default page loads at `http://wsa-lab7.local:3000` from your host browser:
+
+```bash
+npm start
+```
+
+2. Stop the server (Ctrl+C). Install `ejs` as the view engine and switch the default view files over:
+
+```bash
+npm install ejs
+mv views/index.jade views/index.ejs
+mv views/error.jade views/error.ejs
+```
+
+3. Replace `views/index.ejs` with:
+
+```html
+<html>
+  <body>
+    <%= title %>
+  </body>
+</html>
+```
+
+## Part 3: Register OAuth Credentials with Google
+
+1. Go to [console.developers.google.com](https://console.developers.google.com/project) and create a new project named `wsa-lab7`.
+2. From the sidebar, go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email for support/developer contact, and accept defaults for the remaining screens.
+3. Go to **Credentials → Create Credentials → OAuth client ID**. Choose **Web application** and fill in:
+   - **Name**: `wsa-lab7`
+   - **Authorized JavaScript origins**: `http://wsa-lab7.local`
+   - **Authorized redirect URIs**: `http://wsa-lab7.local:3000/auth/google/callback`
+4. Click **Create**. Copy the **Client ID** and **Client Secret** shown in the popup — you'll need both in Part 4.
+
+**Never commit these values to Git.** In Part 4 you'll load them from environment variables, exactly like the PaaS environment-variable practice from Week 4.
+
+## Part 4: Install Passport and the Google Strategy
+
+1. Install the required packages:
+
+```bash
+npm install passport express-session passport-google-oauth20 --save
+```
+
+2. Set your credentials as environment variables (don't hardcode them):
+
+```bash
+export GOOGLE_CLIENT_ID="your-client-id-here"
+export GOOGLE_CLIENT_SECRET="your-client-secret-here"
+```
+
+3. Near the top of `app.js`, add:
 
 ```js
-const express = require('express');
-const app = express();
+var passport = require('passport');
+var session = require('express-session');
+var GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-app.get('/', (req, res) => {
-  res.send('Hello from behind the reverse proxy!');
-});
-
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
-app.listen(3000, '127.0.0.1', () => console.log('App listening on 127.0.0.1:3000'));
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: 'http://wsa-lab7.local:3000/auth/google/callback'
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    cb(null, profile);
+  }
+));
 ```
 
-   Note the app binds to `127.0.0.1` only, not `0.0.0.0` — it should never be reachable directly from outside the VM. Only Nginx should be publicly exposed.
-
-3. Start it under PM2:
-
-```bash
-pm2 start server.js --name comp1350-app
-pm2 save
-```
-
-4. Confirm it responds locally, but only locally:
-
-```bash
-curl http://127.0.0.1:3000
-```
-
-## Part 3: Generate a TLS Certificate
-
-*Reuse the process from Lab 5.*
-
-```bash
-sudo mkdir -p /etc/nginx/ssl_key && cd /etc/nginx/ssl_key
-sudo openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out server.key
-sudo openssl req -new -key server.key -out csr.pem
-sudo openssl x509 -req -days 365 -in csr.pem -signkey server.key -out server.crt
-```
-
-   Set the Common Name to `192.168.56.16` when prompted.
-
-## Part 4: Configure Nginx as a Reverse Proxy with TLS Termination
-
-1. Create the site config:
-
-```bash
-sudo nano /etc/nginx/sites-available/comp1350-app
-```
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name comp1350-app.local;
-
-    ssl_certificate     /etc/nginx/ssl_key/server.crt;
-    ssl_certificate_key /etc/nginx/ssl_key/server.key;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 80;
-    server_name comp1350-app.local;
-    return 301 https://$host$request_uri;
-}
-```
-
-2. Enable the site, test, and restart:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/comp1350-app /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-3. On your host machine, add `192.168.56.16 comp1350-app.local` to your hosts file. Visit `https://comp1350-app.local` — you should see your Express app's response, served over HTTPS, even though Express itself knows nothing about TLS.
-
-## Part 5: Confirm the Architecture
-
-1. Confirm the Node app is genuinely unreachable from outside the VM. From your **host machine**:
-
-```bash
-curl http://192.168.56.16:3000
-```
-
-   This should fail (connection refused) — the app only listens on `127.0.0.1` inside the VM, and Nginx is the only public entry point.
-
-2. Inspect the forwarded headers your backend receives. Temporarily add a debug route to `server.js`:
+4. Right after the Express app is created, add:
 
 ```js
-app.get('/whoami', (req, res) => {
-  res.json({
-    host: req.headers['host'],
-    realIp: req.headers['x-real-ip'],
-    forwardedFor: req.headers['x-forwarded-for'],
-    forwardedProto: req.headers['x-forwarded-proto'],
-  });
-});
+app.use(session({ secret: 'comp1350-lab6-secret' }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function(user, done) { done(null, user); });
+passport.deserializeUser(function(user, done) { done(null, user); });
 ```
 
-3. Restart the app and hit the route through the proxy:
+## Part 5: Add the Auth Routes
+
+1. Near the other route imports in `app.js`:
+
+```js
+var auth = require('./routes/auth');
+```
+
+2. Alongside the other `app.use('/...')` lines:
+
+```js
+app.use('/auth', auth);
+```
+
+3. Create `routes/auth.js`:
+
+```js
+var express = require('express');
+var passport = require('passport');
+var router = express.Router();
+
+router.route('/google').get(
+  passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })
+);
+
+router.route('/google/callback').get(
+  passport.authenticate('google', { failureRedirect: '/' }),
+  function(req, res) {
+    res.redirect('/');
+  }
+);
+
+module.exports = router;
+```
+
+4. Create `views/users.ejs`:
+
+```html
+<html>
+  <body>
+    <div>Hi <%= username %></div>
+  </body>
+</html>
+```
+
+5. Replace `routes/index.js`:
+
+```js
+var express = require('express');
+var router = express.Router();
+
+router.get('/', function(req, res) {
+  if (req.user && req.user.displayName) {
+    res.render('users', { username: req.user.displayName });
+  } else {
+    res.render('index', { title: 'wsa-lab7' });
+  }
+});
+
+module.exports = router;
+```
+
+6. Update `views/index.ejs` to add a login link:
+
+```html
+<html>
+  <body>
+    <%= title %>
+    <ul>
+      <li><a href="/auth/google">Sign in with Google</a></li>
+    </ul>
+  </body>
+</html>
+```
+
+## Part 6: Test the Full Flow
+
+1. Restart the app with your environment variables set:
 
 ```bash
-pm2 restart comp1350-app
-curl -k https://comp1350-app.local/whoami
+GOOGLE_CLIENT_ID="..." GOOGLE_CLIENT_SECRET="..." npm start
 ```
 
-**Q1**: Explain in your own words what each of the three `proxy_set_header` lines is preserving for the backend, and why the backend would lose that information without them.
+2. From your host browser, visit `http://wsa-lab7.local:3000` and click **Sign in with Google**.
+3. Complete the Google login/consent screen. You should be redirected back and see "Hi `<your name>`".
+
+**Q1**: At what point in this flow did your app ever see your Google password? Trace through exactly which party (browser, your app, Google) held which piece of information at each step.
 
 ## Deliverables
 
-- Screenshot of `https://comp1350-app.local` loading successfully with a valid padlock-click showing your self-signed cert
-- Screenshot of the failed `curl` attempt directly to port 3000 from your host machine
-- Output of the `/whoami` route showing the forwarded headers arriving correctly
-- Your final Nginx site config
+- Screenshot of the login page with the "Sign in with Google" link
+- Screenshot of the post-login "Hi `<your name>`" page
+- Your `app.js` OAuth configuration section (with credentials redacted/shown as environment variable references, never as literal strings)
 - Your written answer to Q1
-- **This lab is Milestone A of your group project** — submit your working URL/setup per the project spec alongside your individual lab deliverables
 {% endraw %}

@@ -1,15 +1,15 @@
-# Lab 10: CDN — jsDelivr Latency Test & Cloudflare Setup
+# Lab 9: CDN — jsDelivr Latency Test & Cloudflare Setup
 
 *COMP 1350 — Web Administration, Week 11*
 
 In this lab you'll measure the real latency difference a CDN makes on static assets, then route your own project's domain through Cloudflare to see CDN behavior configured end to end on a production-grade free tier.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in both VM definitions, add a `vmware_desktop` provider block to each, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in both VM definitions, add a `vmware_desktop` provider block to each, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision Two VMs
 
 ```bash
-mkdir ~/comp1350-lab10 && cd ~/comp1350-lab10
+mkdir ~/comp1350-lab9 && cd ~/comp1350-lab9
 vagrant init
 ```
 

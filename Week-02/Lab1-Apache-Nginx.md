@@ -1,17 +1,17 @@
-# Lab 2: Apache & Nginx Side-by-Side
+# Lab 1: Apache & Nginx Side-by-Side
 
 *COMP 1350 — Web Administration, Week 2*
 
 In this lab you'll install Apache and Nginx on separate Vagrant VMs, configure a virtual host on each, and directly compare how the two handle the same job — reinforcing this week's "same job, different architecture" theme.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision Two VMs
 
 1. From a new lab directory, create a `Vagrantfile` that defines two VMs at once:
 
 ```bash
-mkdir ~/comp1350-lab2 && cd ~/comp1350-lab2
+mkdir ~/comp1350-lab1 && cd ~/comp1350-lab1
 vagrant init
 ```
 

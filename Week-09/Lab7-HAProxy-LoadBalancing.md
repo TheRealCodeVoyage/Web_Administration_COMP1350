@@ -1,15 +1,15 @@
-# Lab 8: Load Balancing with HAProxy
+# Lab 7: Load Balancing with HAProxy
 
 *COMP 1350 — Web Administration, Week 9*
 
 Welcome back from the midterm. In this lab you'll build a real load-balanced setup — one HAProxy VM in front of two backend web servers — test multiple balancing algorithms, and then compare HAProxy directly against Nginx's built-in `upstream` module doing the same job.
 
-> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 1's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in **all three** VM definitions, add a `vmware_desktop` provider block to each instead of relying on VirtualBox, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box in **all three** VM definitions, add a `vmware_desktop` provider block to each instead of relying on VirtualBox, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
 ## Part 1: Provision Three VMs
 
 ```bash
-mkdir ~/comp1350-lab8 && cd ~/comp1350-lab8
+mkdir ~/comp1350-lab7 && cd ~/comp1350-lab7
 vagrant init
 ```
 

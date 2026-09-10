@@ -1,118 +1,181 @@
 ---
-title: "Lab 4: Deployment — GitHub Pages & Modern PaaS"
+title: "Lab 4: SSL/TLS — Self-Signed Certificates & Let's Encrypt"
 ---
 
 [&larr; Back to course index]({{ '/' | relative_url }})
 
 {% raw %}
-# Lab 4: Deployment — GitHub Pages & Modern PaaS
+# Lab 4: SSL/TLS — Self-Signed Certificates & Let's Encrypt
 
-*COMP 1350 — Web Administration, Week 4*
+*COMP 1350 — Web Administration, Week 5*
 
-In this lab you will deploy two things to the public internet: a static site via GitHub Pages, and the Node.js/Express application you built in Lab 3 via a modern PaaS provider (Render). By the end of this lab you will have a live, public URL for each.
+In this lab you'll generate a self-signed TLS certificate by hand (to see every moving part), configure Nginx to serve HTTPS with it, then contrast that manual process with Certbot's fully automated Let's Encrypt workflow.
 
-## Prerequisites
+> **Apple Silicon (M1/M2/M3/M4) Mac?** See Lab 0's Apple Silicon Setup section first. Replace `ubuntu/jammy64` below with your arm64 box, add a `vmware_desktop` provider block instead of the VirtualBox one, and run `vagrant up --provider=vmware_desktop`. Everything else in this lab — IPs, commands, config files — is identical.
 
-- A [GitHub](https://github.com) account
-- Git installed and configured locally (`git config --global user.name` / `user.email` already set)
-- The Node.js/Express + PM2 project from Lab 3, committed to a local Git repository
-- A free [Render](https://render.com) account (sign in with GitHub for the smoothest setup)
-
-## Part 1: Deploy a Static Site to GitHub Pages
-
-1. Create a new public repository on GitHub named `<yourname>-portfolio`.
-2. Clone it locally and add a minimal static site:
+## Part 1: Provision the VM
 
 ```bash
-git clone https://github.com/<your-username>/<yourname>-portfolio.git
-cd <yourname>-portfolio
+mkdir ~/comp1350-lab4 && cd ~/comp1350-lab4
+vagrant init ubuntu/jammy64
 ```
 
-Create `index.html`:
+Add a private network line to the `Vagrantfile`:
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>My Portfolio</title>
-</head>
-<body>
-  <h1>Hello from GitHub Pages!</h1>
-  <p>Deployed by <yourname> — COMP 1350, Week 4.</p>
-</body>
-</html>
+```ruby
+config.vm.network "private_network", ip: "192.168.56.15"
 ```
-
-3. Commit and push:
 
 ```bash
-git add index.html
-git commit -m "Add initial static site"
-git push origin main
+vagrant up
+vagrant ssh
+sudo apt update
+sudo apt install nginx openssl -y
 ```
 
-4. On GitHub, go to **Settings → Pages**. Under **Build and deployment**, set **Source** to "Deploy from a branch", branch `main`, folder `/ (root)`. Save.
-5. Wait 1–2 minutes, then visit `https://<your-username>.github.io/<yourname>-portfolio/`.
-6. Make a small change to `index.html`, commit, and push again. Confirm the live site updates automatically within a minute or two — this is the Git-based deployment workflow from lecture in action.
+## Part 2: Generate a Self-Signed Certificate
 
-## Part 2: Deploy the Node/Express App to Render
+1. Create a directory to hold your key material:
 
-1. Push your Lab 3 Node/Express project to a **new** GitHub repository (`<yourname>-webapp`).
-2. Confirm your `package.json` has a valid `start` script, e.g.:
+```bash
+sudo mkdir -p /etc/nginx/ssl_key
+cd /etc/nginx/ssl_key
+```
 
-```json
-"scripts": {
-  "start": "node server.js"
+2. Generate a private key (4096-bit RSA):
+
+```bash
+sudo openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out server.key
+```
+
+3. Generate a Certificate Signing Request (CSR). When prompted, set **Common Name** to `192.168.56.15` (your VM's IP):
+
+```bash
+sudo openssl req -new -key server.key -out csr.pem
+```
+
+4. Self-sign the CSR to produce the final certificate (valid 365 days):
+
+```bash
+sudo openssl x509 -req -days 365 -in csr.pem -signkey server.key -out server.crt
+```
+
+5. Verify the key and CSR match:
+
+```bash
+sudo openssl req -in csr.pem -noout -verify -key server.key
+```
+
+6. You now have three files. Note what each is for:
+
+| File | Purpose |
+|---|---|
+| `server.key` | Private key — never share this, never commit it to Git |
+| `server.crt` | The certificate itself (contains the public key) |
+| `csr.pem` | The signing request — safe to delete now, no longer needed |
+
+## Part 3: Configure Nginx for HTTPS
+
+1. Create a site root and page:
+
+```bash
+sudo mkdir -p /var/www/wsalab5.info
+echo "<h1>Secured by Self-Signed TLS</h1>" | sudo tee /var/www/wsalab5.info/index.html
+```
+
+2. Create the site config:
+
+```bash
+sudo nano /etc/nginx/sites-available/wsalab5.info
+```
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name wsalab5.info;
+
+    ssl_certificate /etc/nginx/ssl_key/server.crt;
+    ssl_certificate_key /etc/nginx/ssl_key/server.key;
+
+    root /var/www/wsalab5.info;
+    index index.html;
 }
 ```
 
-   Render runs `npm install` then `npm start` — it does not need PM2 directly; Render's platform plays the role PM2 played on your own VM (keeping the process alive, restarting on crash).
+3. Enable the site, test, and restart:
 
-3. In the Render dashboard: **New → Web Service**, connect the `<yourname>-webapp` repository.
-4. Configure:
-   - **Environment**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Instance Type**: Free
-5. Click **Create Web Service**. Watch the build log — this is the same "build runs" step from the lecture diagram.
-6. Once deployed, Render gives you a public URL like `https://<yourname>-webapp.onrender.com`. Confirm your app responds correctly.
-7. Make a small change to a route's response text, commit, and push. Confirm Render automatically rebuilds and redeploys.
-
-> **Note on the free tier:** Render's free web services "sleep" after a period of inactivity and take a few seconds to wake on the next request. This is expected — do not treat the first slow request as a bug.
-
-## Part 3: Environment Variables on Render
-
-1. In your Express app, add a route that reads an environment variable:
-
-```js
-app.get('/version', (req, res) => {
-  res.send(`App version: ${process.env.APP_VERSION || 'unset'}`);
-});
+```bash
+sudo ln -s /etc/nginx/sites-available/wsalab5.info /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
 ```
 
-2. In the Render dashboard, go to your service's **Environment** tab and add:
+4. On your host machine, add `192.168.56.15 wsalab5.info` to your hosts file, then visit `https://wsalab5.info`.
 
+**Q1**: You will get a browser security warning. Take a screenshot of it and be ready to explain to your instructor exactly *why* the browser doesn't trust this certificate, even though the connection is genuinely encrypted.
+
+5. View the certificate details in your browser (Chrome: click the padlock → Certificate). Screenshot the Common Name and validity dates.
+
+## Part 4: Enforce HTTPS (Redirect HTTP → HTTPS)
+
+1. Add a second server block to the same config file for port 80 that redirects to HTTPS:
+
+```nginx
+server {
+    listen 80;
+    server_name wsalab5.info;
+    return 301 https://$host$request_uri;
+}
 ```
-APP_VERSION=1.0.0
+
+2. Test and reload:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-3. Redeploy (Render will prompt you, or trigger a manual deploy) and visit `/version` to confirm the value is read from the environment, not hardcoded.
-4. Add a `.env.example` file to your repo (do **not** commit a real `.env` file) documenting which variables the app expects:
+3. Confirm the redirect with curl:
 
+```bash
+curl -I http://wsalab5.info
 ```
-APP_VERSION=
+
+**Q2**: Show your instructor the `301` status code and the `Location` header in the curl output.
+
+## Part 5: Let's Encrypt with Certbot (Automated Alternative)
+
+*Let's Encrypt requires a publicly resolvable domain name and port 80/443 reachable from the internet — it cannot issue a certificate for a private IP like `192.168.56.15` or an unregistered `.local`/`.info` name. This part is a guided walkthrough you'll run against your live PaaS deployment from Week 4 (Render/Vercel/Netlify), which already provisions valid certificates automatically — or, if your instructor has arranged a shared public test domain, against that.*
+
+1. If working against your own domain pointed at a real public server, install Certbot:
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
 ```
 
-## Part 4 (Bonus): Custom Domain
+2. Run Certbot's Nginx plugin — it automatically edits your Nginx config, obtains the certificate, and reloads Nginx for you:
 
-If you own a domain (or want to use a free subdomain provider), attach it to your Render service under **Settings → Custom Domains**, and follow Render's DNS instructions (typically a `CNAME` record). Confirm HTTPS is automatically provisioned once DNS propagates.
+```bash
+sudo certbot --nginx -d yourdomain.com
+```
+
+3. Certbot will ask whether to redirect HTTP to HTTPS automatically — compare this to the manual `return 301` block you wrote by hand in Part 4.
+
+4. Certificates from Let's Encrypt expire every **90 days**. Certbot installs a renewal timer automatically. Confirm it:
+
+```bash
+sudo systemctl list-timers | grep certbot
+sudo certbot renew --dry-run
+```
+
+**Q3**: List every manual step from Parts 2–4 that Certbot's `--nginx` flag replaced with a single command.
 
 ## Deliverables
 
-Submit a short writeup (1 page) with:
-
-- Your live GitHub Pages URL and your live Render URL
-- A screenshot of each site/app running in a browser
-- A screenshot of the Render environment variables panel showing `APP_VERSION`
-- One paragraph: compare the deployment experience of GitHub Pages vs. Render — what could each one **not** do that the other could?
+- Screenshot of the browser security warning from Part 3, plus your written explanation for Q1
+- Screenshot of the certificate details (Common Name, validity dates) from Part 3
+- Screenshot of the `curl -I` output from Part 4 showing the 301 redirect
+- Your completed answer to Q3
+- Your final Nginx site config file
 {% endraw %}

@@ -33,10 +33,10 @@ Either type must satisfy every milestone's technical requirements below; the *co
 
 **Due:** Week 6 (Thu Oct 15)
 
-- A working frontend (HTML/CSS/JS, or a framework of your choice) and a backend built with Node.js/Express (per Lab 3), managed as a persistent process with PM2 — not `node app.js` left running in a terminal.
+- A working frontend (HTML/CSS/JS, or a framework of your choice) and a backend built with Node.js/Express (per Lab 2), managed as a persistent process with PM2 — not `node app.js` left running in a terminal.
 - The app is deployed to a real host: either a cloud VM (AWS/DigitalOcean/Azure — your choice) or a PaaS provider from Week 4 (Render/Vercel/Netlify), whichever fits your app type.
-- Your Node/Express app binds to `127.0.0.1` only. A web server — **Nginx or Apache**, your team's choice — sits in front of it as a reverse proxy and is the only publicly-facing service (per Lab 6). *(This replaces ACIT 3475 Project 1's use of the Caddy web server — Caddy isn't taught in COMP 1350, so the reverse proxy is built with the server your team has actually learned in Weeks 2, 3, and 6.)*
-- TLS is enabled at the reverse proxy — a self-signed certificate is acceptable for local/VM demos; a Let's Encrypt certificate is required if you're on a real public domain (Lab 5).
+- Your Node/Express app binds to `127.0.0.1` only. A web server — **Nginx or Apache**, your team's choice — sits in front of it as a reverse proxy and is the only publicly-facing service (per Lab 5). *(This replaces ACIT 3475 Project 1's use of the Caddy web server — Caddy isn't taught in COMP 1350, so the reverse proxy is built with the server your team has actually learned in Weeks 2, 3, and 6.)*
+- TLS is enabled at the reverse proxy — a self-signed certificate is acceptable for local/VM demos; a Let's Encrypt certificate is required if you're on a real public domain (Lab 4).
 - HTTP requests are redirected to HTTPS.
 
 **Deliverables:** live URL, GitHub repo link, and a short (1–2 page) Markdown write-up covering your reverse-proxy config (with annotations) and any troubleshooting you hit.
@@ -47,7 +47,7 @@ Either type must satisfy every milestone's technical requirements below; the *co
 
 **Due:** Week 9 (Thu Nov 5) — the week after the midterm buffer
 
-- "Sign in with Google" implemented via Passport.js and Google Cloud OAuth 2.0 (per Lab 7). Client ID/secret are stored as environment variables — never hardcoded or committed to the repo.
+- "Sign in with Google" implemented via Passport.js and Google Cloud OAuth 2.0 (per Lab 6). Client ID/secret are stored as environment variables — never hardcoded or committed to the repo.
 - At least one part of your site is gated behind authentication (e.g., only a logged-in user can edit the portfolio's "Projects" section, or only a logged-in user can create/edit content in a product app).
 - Your Express backend from Milestone A is still the app serving these routes — this milestone extends it, it doesn't replace it.
 
@@ -63,10 +63,10 @@ Either type must satisfy every milestone's technical requirements below; the *co
 
 This is the heaviest milestone — it's where your project graduates from "one server" to "a small distributed system."
 
-- **Load balancing:** at least two backend instances of your app running behind an HAProxy load balancer (per Lab 8), using round-robin or least-connections.
-- **Redundancy:** apply the SPOF analysis from Lab 9 to your own architecture — identify where your remaining single point of failure is (it's very likely your one load balancer) and either implement a second load balancer with keepalived/VRRP, or, if time-constrained, document the design for how you *would* remove it and why.
-- **CDN:** static assets (images, CSS, JS) served through a CDN — either jsDelivr (if your static assets live in a public GitHub repo) or Cloudflare's free tier in front of your domain (per Lab 10).
-- **Centralized logging:** logs from all your backend instances are forwarded to a single collector (rsyslog remote forwarding, or a hosted option like Loki/Papertrail), not left scattered across individual servers (per Lab 11).
+- **Load balancing:** at least two backend instances of your app running behind an HAProxy load balancer (per Lab 7), using round-robin or least-connections.
+- **Redundancy:** apply the SPOF analysis from Lab 8 to your own architecture — identify where your remaining single point of failure is (it's very likely your one load balancer) and either implement a second load balancer with keepalived/VRRP, or, if time-constrained, document the design for how you *would* remove it and why.
+- **CDN:** static assets (images, CSS, JS) served through a CDN — either jsDelivr (if your static assets live in a public GitHub repo) or Cloudflare's free tier in front of your domain (per Lab 9).
+- **Centralized logging:** logs from all your backend instances are forwarded to a single collector (rsyslog remote forwarding, or a hosted option like Loki/Papertrail), not left scattered across individual servers (per Lab 10).
 - **Analytics:** Google Analytics 4 (GA4) tag installed and confirmed collecting real pageview/event data.
 
 **Deliverables:** updated live URL, HAProxy config with annotations, a short SPOF write-up (what you found, what you did about it), and a screenshot of GA4 showing live data.
@@ -111,5 +111,4 @@ A short peer-assessment form is submitted individually alongside the Final Deliv
 ## Academic Integrity
 
 Using AI tools (including Claude, ChatGPT, or GitHub Copilot) to help write code, debug configs, or draft documentation is permitted and expected — this mirrors how junior developers actually work. What is not permitted is submitting infrastructure you don't understand: any team member should be able to explain, live, what any line of their Nginx/HAProxy config or OAuth flow does. Milestone write-ups must be in your own words even if a tool helped you get there.
-
 {% endraw %}
