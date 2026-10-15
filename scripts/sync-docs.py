@@ -27,17 +27,17 @@ DOCS = REPO_ROOT / "docs"
 # than a glob, so adding a file to the website is always a visible change.
 
 LABS = [
-    ("Week-01/Lab1-VM-Setup.md",                  "Lab_01.md", "Lab 1: Development VM Setup with VirtualBox & Vagrant"),
-    ("Week-02/Lab2-Apache-Nginx.md",              "Lab_02.md", "Lab 2: Apache & Nginx Side-by-Side"),
-    ("Week-03/Lab3-IIS-Node-PM2.md",              "Lab_03.md", "Lab 3: IIS & Node.js/Express.js with PM2"),
-    ("Week-04/Lab4-Deployment.md",                "Lab_04.md", "Lab 4: Deployment — GitHub Pages & Modern PaaS"),
-    ("Week-05/Lab5-SSL-TLS.md",                   "Lab_05.md", "Lab 5: SSL/TLS — Self-Signed Certificates & Let's Encrypt"),
-    ("Week-06/Lab6-Reverse-Proxy-TLS.md",         "Lab_06.md", "Lab 6: Reverse Proxy Terminating TLS"),
-    ("Week-07/Lab7-OAuth.md",                     "Lab_07.md", "Lab 7: OAuth Login with Passport.js"),
-    ("Week-09/Lab8-HAProxy-LoadBalancing.md",     "Lab_08.md", "Lab 8: Load Balancing with HAProxy"),
-    ("Week-10/Lab9-SPOF-Redundancy.md",           "Lab_09.md", "Lab 9: Eliminating Single Points of Failure"),
-    ("Week-11/Lab10-CDN-Cloudflare.md",           "Lab_10.md", "Lab 10: CDN — jsDelivr Latency Test & Cloudflare Setup"),
-    ("Week-12/Lab11-Centralized-Logging.md",      "Lab_11.md", "Lab 11: Centralized Logging"),
+    ("Week-01/Lab0-VM-Setup.md",                  "Lab_00.md", "Lab 0: Development VM Setup with VirtualBox & Vagrant"),
+    ("Week-02/Lab1-Apache-Nginx.md",              "Lab_01.md", "Lab 1: Apache & Nginx Side-by-Side"),
+    ("Week-03/Lab2-IIS-Node-PM2.md",              "Lab_02.md", "Lab 2: IIS & Node.js/Express.js with PM2"),
+    ("Week-04/Lab3-Deployment.md",                "Lab_03.md", "Lab 3: Deployment — GitHub Pages & Modern PaaS"),
+    ("Week-05/Lab4-SSL-TLS.md",                   "Lab_04.md", "Lab 4: SSL/TLS — Self-Signed Certificates & Let's Encrypt"),
+    ("Week-06/Lab5-Reverse-Proxy-TLS.md",         "Lab_05.md", "Lab 5: Reverse Proxy Terminating TLS"),
+    ("Week-07/Lab6-OAuth.md",                     "Lab_06.md", "Lab 6: OAuth Login with Passport.js"),
+    ("Week-09/Lab7-HAProxy-LoadBalancing.md",     "Lab_07.md", "Lab 7: Load Balancing with HAProxy"),
+    ("Week-10/Lab8-SPOF-Redundancy.md",           "Lab_08.md", "Lab 8: Eliminating Single Points of Failure"),
+    ("Week-11/Lab9-CDN-Cloudflare.md",           "Lab_09.md", "Lab 9: CDN — jsDelivr Latency Test & Cloudflare Setup"),
+    ("Week-12/Lab10-Centralized-Logging.md",      "Lab_10.md", "Lab 10: Centralized Logging"),
 ]
 
 ONLINE_ACTIVITIES = [
