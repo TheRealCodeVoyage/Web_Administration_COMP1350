@@ -28,7 +28,7 @@ Either type must satisfy every milestone's technical requirements below; the *co
 
 - A working frontend (HTML/CSS/JS, or a framework of your choice) and a backend built with Node.js/Express (per Lab 2), managed as a persistent process with PM2 — not `node app.js` left running in a terminal.
 - The app is deployed to a real host: either a cloud VM (AWS/DigitalOcean/Azure — your choice) or a PaaS provider from Week 4 (Render/Vercel/Netlify), whichever fits your app type.
-- Your Node/Express app binds to `127.0.0.1` only. A web server — **Nginx or Apache**, your team's choice — sits in front of it as a reverse proxy and is the only publicly-facing service (per Lab 5). *(This replaces ACIT 3475 Project 1's use of the Caddy web server — Caddy isn't taught in COMP 1350, so the reverse proxy is built with the server your team has actually learned in Weeks 2, 3, and 6.)*
+- Your Node/Express app binds to `127.0.0.1` only. A web server — **Nginx or Apache**, your team's choice — sits in front of it as a reverse proxy and is the only publicly-facing service (per Lab 5).
 - TLS is enabled at the reverse proxy — a self-signed certificate is acceptable for local/VM demos; a Let's Encrypt certificate is required if you're on a real public domain (Lab 4).
 - HTTP requests are redirected to HTTPS.
 
