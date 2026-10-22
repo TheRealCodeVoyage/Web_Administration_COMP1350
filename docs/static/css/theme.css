@@ -1,0 +1,457 @@
+/*******************************************************************************
+COMP 1350 site theme: dark mode (default) + animated toggle.
+
+Loaded after the Slate theme's style.css. Light mode is Slate unchanged; every
+dark rule is scoped to html:not([data-theme="light"]) so that dark is also
+what visitors get if JavaScript is disabled.
+*******************************************************************************/
+
+:root {
+  --dm-page: #141518;
+  --dm-bg: #1b1c20;
+  --dm-surface: #22242a;
+  --dm-border: #30333a;
+  --dm-text: #d5d7dc;
+  --dm-heading: #f2f3f5;
+  --dm-muted: #9a9ea8;
+  --dm-link: #5aa9ff;
+  --dm-link-hover: #8cc4ff;
+  --dm-code-bg: #101216;
+  --dm-code-text: #e6edf3;
+  --dm-inline-code-bg: #2a2d34;
+}
+
+html[data-theme="light"] { color-scheme: light; }
+html:not([data-theme="light"]) { color-scheme: dark; }
+
+
+/*******************************************************************************
+Dark mode: page structure and typography
+*******************************************************************************/
+
+html:not([data-theme="light"]) body {
+  color: var(--dm-text);
+  background: var(--dm-page);
+}
+
+html:not([data-theme="light"]) #header_wrap {
+  background: linear-gradient(to top, #24262b, #121316);
+}
+
+html:not([data-theme="light"]) #main_content_wrap {
+  background: var(--dm-bg);
+  border-top-color: #0b0c0e;
+  border-bottom-color: #0b0c0e;
+}
+
+html:not([data-theme="light"]) #footer_wrap {
+  background: var(--dm-page);
+}
+
+html:not([data-theme="light"]) #main_content h1,
+html:not([data-theme="light"]) #main_content h2,
+html:not([data-theme="light"]) #main_content h3,
+html:not([data-theme="light"]) #main_content h4,
+html:not([data-theme="light"]) #main_content h5,
+html:not([data-theme="light"]) #main_content h6 {
+  color: var(--dm-heading);
+}
+
+/* Slate draws the h2 / hr rule with a light PNG; swap it for a border. */
+html:not([data-theme="light"]) #main_content h2 {
+  background: none;
+  border-bottom: 1px solid var(--dm-border);
+}
+
+html:not([data-theme="light"]) #main_content hr {
+  background: var(--dm-border);
+}
+
+html:not([data-theme="light"]) a {
+  color: var(--dm-link);
+}
+
+html:not([data-theme="light"]) a:hover,
+html:not([data-theme="light"]) a:focus {
+  color: var(--dm-link-hover);
+}
+
+html:not([data-theme="light"]) footer a {
+  color: #f2f2f2;
+}
+
+html:not([data-theme="light"]) blockquote {
+  color: var(--dm-muted);
+  border-left-color: #4a4e57;
+}
+
+html:not([data-theme="light"]) img {
+  border-color: var(--dm-border);
+  box-shadow: none;
+}
+
+html:not([data-theme="light"]) p img {
+  border: none;
+}
+
+html:not([data-theme="light"]) ::selection {
+  background: rgba(90, 169, 255, 0.35);
+}
+
+
+/*******************************************************************************
+Dark mode: tables, forms, kbd
+*******************************************************************************/
+
+html:not([data-theme="light"]) table {
+  border-color: var(--dm-border);
+}
+
+html:not([data-theme="light"]) th {
+  background: #2b2e35;
+  color: var(--dm-heading);
+}
+
+html:not([data-theme="light"]) td {
+  border-color: var(--dm-border);
+}
+
+html:not([data-theme="light"]) tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+html:not([data-theme="light"]) form {
+  background: var(--dm-surface);
+}
+
+html:not([data-theme="light"]) kbd {
+  background-color: var(--dm-surface);
+  border-color: #454952;
+  border-bottom-color: #5b606b;
+  box-shadow: inset 0 -1px 0 #5b606b;
+  color: var(--dm-text);
+}
+
+
+/*******************************************************************************
+Dark mode: code
+*******************************************************************************/
+
+html:not([data-theme="light"]) code {
+  color: var(--dm-code-text);
+  background-color: var(--dm-inline-code-bg);
+  box-shadow: none;
+}
+
+html:not([data-theme="light"]) pre,
+html:not([data-theme="light"]) pre code,
+html:not([data-theme="light"]) .highlight {
+  color: var(--dm-code-text);
+  background-color: var(--dm-code-bg);
+}
+
+html:not([data-theme="light"]) pre {
+  border: 1px solid var(--dm-border);
+  box-shadow: none;
+}
+
+/* Rouge token colours, based on GitHub's dark palette. */
+html:not([data-theme="light"]) .highlight .c,
+html:not([data-theme="light"]) .highlight .cd,
+html:not([data-theme="light"]) .highlight .cm,
+html:not([data-theme="light"]) .highlight .c1,
+html:not([data-theme="light"]) .highlight .cs,
+html:not([data-theme="light"]) .highlight .cp { color: #8b949e; }
+
+html:not([data-theme="light"]) .highlight .k,
+html:not([data-theme="light"]) .highlight .kc,
+html:not([data-theme="light"]) .highlight .kd,
+html:not([data-theme="light"]) .highlight .kn,
+html:not([data-theme="light"]) .highlight .kp,
+html:not([data-theme="light"]) .highlight .kr,
+html:not([data-theme="light"]) .highlight .kv,
+html:not([data-theme="light"]) .highlight .o,
+html:not([data-theme="light"]) .highlight .ow { color: #ff7b72; }
+
+html:not([data-theme="light"]) .highlight .kt,
+html:not([data-theme="light"]) .highlight .nc,
+html:not([data-theme="light"]) .highlight .nf,
+html:not([data-theme="light"]) .highlight .nl,
+html:not([data-theme="light"]) .highlight .ne { color: #d2a8ff; }
+
+html:not([data-theme="light"]) .highlight .s,
+html:not([data-theme="light"]) .highlight .s1,
+html:not([data-theme="light"]) .highlight .s2,
+html:not([data-theme="light"]) .highlight .sb,
+html:not([data-theme="light"]) .highlight .sc,
+html:not([data-theme="light"]) .highlight .sd,
+html:not([data-theme="light"]) .highlight .se,
+html:not([data-theme="light"]) .highlight .sh,
+html:not([data-theme="light"]) .highlight .si,
+html:not([data-theme="light"]) .highlight .sx,
+html:not([data-theme="light"]) .highlight .sr,
+html:not([data-theme="light"]) .highlight .ss { color: #a5d6ff; }
+
+html:not([data-theme="light"]) .highlight .m,
+html:not([data-theme="light"]) .highlight .mb,
+html:not([data-theme="light"]) .highlight .mf,
+html:not([data-theme="light"]) .highlight .mh,
+html:not([data-theme="light"]) .highlight .mi,
+html:not([data-theme="light"]) .highlight .mo,
+html:not([data-theme="light"]) .highlight .mx,
+html:not([data-theme="light"]) .highlight .il,
+html:not([data-theme="light"]) .highlight .na,
+html:not([data-theme="light"]) .highlight .nb,
+html:not([data-theme="light"]) .highlight .bp,
+html:not([data-theme="light"]) .highlight .no { color: #79c0ff; }
+
+html:not([data-theme="light"]) .highlight .nv,
+html:not([data-theme="light"]) .highlight .vc,
+html:not([data-theme="light"]) .highlight .vg,
+html:not([data-theme="light"]) .highlight .vi,
+html:not([data-theme="light"]) .highlight .nd { color: #ffa657; }
+
+html:not([data-theme="light"]) .highlight .nt { color: #7ee787; }
+html:not([data-theme="light"]) .highlight .nn,
+html:not([data-theme="light"]) .highlight .ni { color: #e6edf3; }
+
+html:not([data-theme="light"]) .highlight .gp,
+html:not([data-theme="light"]) .highlight .go,
+html:not([data-theme="light"]) .highlight .gh,
+html:not([data-theme="light"]) .highlight .gu,
+html:not([data-theme="light"]) .highlight .w { color: #8b949e; }
+
+html:not([data-theme="light"]) .highlight .gd { color: #ffdcd7; background-color: rgba(248, 81, 73, 0.15); }
+html:not([data-theme="light"]) .highlight .gi { color: #aff5b4; background-color: rgba(46, 160, 67, 0.15); }
+html:not([data-theme="light"]) .highlight .ge { color: inherit; }
+html:not([data-theme="light"]) .highlight .gr,
+html:not([data-theme="light"]) .highlight .gt { color: #ffa198; }
+html:not([data-theme="light"]) .highlight .err { color: #ffa198; background-color: transparent; }
+
+
+/*******************************************************************************
+Theme toggle
+*******************************************************************************/
+
+.theme-toggle {
+  position: absolute;
+  top: 12px;
+  left: 10px;
+  z-index: 11;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Without JavaScript the toggle can't work, so don't show it. */
+html:not([data-theme]) .theme-toggle { display: none; }
+
+.theme-toggle:focus-visible {
+  outline: 2px solid #5aa9ff;
+  outline-offset: 3px;
+}
+
+.theme-toggle__track {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.4s ease;
+}
+
+/* Night and day skies, cross-faded (gradients can't be transitioned directly). */
+.theme-toggle__track::before,
+.theme-toggle__track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transition: opacity 0.6s ease;
+}
+
+.theme-toggle__track::before {
+  background:
+    radial-gradient(circle at 75% 50%, rgba(129, 140, 248, 0.35), transparent 60%),
+    linear-gradient(135deg, #0b1026 0%, #1e1b4b 55%, #312e81 100%);
+}
+
+.theme-toggle__track::after {
+  background:
+    radial-gradient(circle at 25% 50%, rgba(253, 230, 138, 0.55), transparent 55%),
+    linear-gradient(135deg, #38bdf8 0%, #60a5fa 60%, #93c5fd 100%);
+  opacity: 0;
+}
+
+html[data-theme="light"] .theme-toggle__track::after { opacity: 1; }
+
+.theme-toggle:hover .theme-toggle__track {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 18px rgba(129, 140, 248, 0.45);
+}
+
+html[data-theme="light"] .theme-toggle:hover .theme-toggle__track {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 0 18px rgba(251, 191, 36, 0.55);
+}
+
+/* Thumb: a moon on the right in dark mode, rolling left into a sun. */
+.theme-toggle__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e7e5dd 45%, #c9c6bb 100%);
+  box-shadow:
+    0 0 0 3px rgba(226, 232, 240, 0.08),
+    0 0 12px rgba(226, 232, 240, 0.55),
+    inset -3px -2px 4px rgba(0, 0, 0, 0.18);
+  transform: translateX(32px) rotate(0deg);
+  transition:
+    transform 0.65s cubic-bezier(0.68, -0.4, 0.27, 1.4),
+    background 0.5s ease,
+    box-shadow 0.5s ease;
+}
+
+html[data-theme="light"] .theme-toggle__thumb {
+  background: radial-gradient(circle at 35% 35%, #fff7c2 0%, #fcd34d 45%, #f59e0b 100%);
+  box-shadow:
+    0 0 0 4px rgba(253, 224, 71, 0.25),
+    0 0 16px rgba(251, 191, 36, 0.9),
+    inset -2px -2px 4px rgba(180, 83, 9, 0.25);
+  transform: translateX(0) rotate(-150deg);
+}
+
+.theme-toggle:active .theme-toggle__thumb {
+  transition-duration: 0.15s, 0.5s, 0.5s;
+  transform: translateX(32px) scale(0.88);
+}
+
+html[data-theme="light"] .theme-toggle:active .theme-toggle__thumb {
+  transform: translateX(0) rotate(-150deg) scale(0.88);
+}
+
+.theme-toggle__crater {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(148, 144, 130, 0.55);
+  box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.35s ease, transform 0.45s ease;
+}
+
+.theme-toggle__crater:nth-child(1) { width: 7px; height: 7px; top: 5px;  left: 11px; }
+.theme-toggle__crater:nth-child(2) { width: 5px; height: 5px; top: 13px; left: 5px; }
+.theme-toggle__crater:nth-child(3) { width: 4px; height: 4px; top: 15px; left: 14px; }
+
+html[data-theme="light"] .theme-toggle__crater {
+  opacity: 0;
+  transform: scale(0);
+}
+
+/* Stars twinkle in the night sky (left side, away from the moon). */
+.theme-toggle__stars i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+  transition: opacity 0.4s ease, transform 0.5s ease;
+  animation: theme-toggle-twinkle 2.4s ease-in-out infinite;
+}
+
+.theme-toggle__stars i:nth-child(1) { top: 7px;  left: 9px;  animation-delay: 0s; }
+.theme-toggle__stars i:nth-child(2) { top: 18px; left: 15px; animation-delay: 0.6s; width: 1.5px; height: 1.5px; }
+.theme-toggle__stars i:nth-child(3) { top: 11px; left: 22px; animation-delay: 1.2s; }
+.theme-toggle__stars i:nth-child(4) { top: 22px; left: 6px;  animation-delay: 1.8s; width: 1.5px; height: 1.5px; }
+.theme-toggle__stars i:nth-child(5) { top: 5px;  left: 28px; animation-delay: 0.9s; width: 1.5px; height: 1.5px; }
+
+html[data-theme="light"] .theme-toggle__stars i {
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: none;
+}
+
+@keyframes theme-toggle-twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.25; transform: scale(0.6); }
+}
+
+/* Clouds drift in on the right side of the day sky. */
+.theme-toggle__clouds i {
+  position: absolute;
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0;
+  transform: translateX(18px);
+  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.theme-toggle__clouds i:nth-child(1) { width: 16px; height: 7px; top: 9px;  left: 38px; }
+.theme-toggle__clouds i:nth-child(2) { width: 12px; height: 6px; top: 18px; left: 46px; }
+.theme-toggle__clouds i:nth-child(3) { width: 9px;  height: 9px; top: 5px;  left: 42px; }
+
+html[data-theme="light"] .theme-toggle__clouds i {
+  opacity: 0.95;
+  transform: translateX(0);
+}
+
+html[data-theme="light"] .theme-toggle__clouds i:nth-child(2) {
+  opacity: 0.8;
+  transition-delay: 0.08s;
+}
+
+
+/*******************************************************************************
+Page transition between themes
+*******************************************************************************/
+
+/* Circular reveal (View Transitions API) — animated from theme.js. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+/* Fallback cross-fade for browsers without view transitions. The toggle is
+   excluded so its own transform animations keep playing. */
+html.theme-transition *:not(.theme-toggle, .theme-toggle *),
+html.theme-transition *:not(.theme-toggle, .theme-toggle *)::before,
+html.theme-transition *:not(.theme-toggle, .theme-toggle *)::after {
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease,
+    border-color 0.5s ease,
+    box-shadow 0.5s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle__thumb,
+  .theme-toggle__crater,
+  .theme-toggle__stars i,
+  .theme-toggle__clouds i,
+  .theme-toggle__track::before,
+  .theme-toggle__track::after {
+    transition: none;
+    animation: none;
+  }
+}
