@@ -24,7 +24,12 @@ Add to the `Vagrantfile`:
 
 ```ruby
 config.vm.network "private_network", ip: "192.168.56.17"
+config.vm.network "forwarded_port", guest: 3000, host: 3000
 ```
+
+The second line forwards port 3000 on your **host machine** to port 3000 inside the VM, so `http://localhost:3000` in your host browser reaches the Express app in the VM.
+
+> **Why `localhost` and not a custom domain?** Google only accepts OAuth redirect URIs that use HTTPS *and* end in a public top-level domain (`.com`, `.io`, …). Private names like `wsa-lab7.local` and raw IPs like `192.168.56.17` are rejected as invalid. `localhost` is the one exception to both rules, which is why we reach the VM through a port forward instead.
 
 ```bash
 vagrant up
@@ -34,11 +39,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-1. On your **host machine**, map a domain name to this VM so Google's OAuth redirect works cleanly (OAuth providers are picky about `localhost`/raw IPs for redirect URIs):
-
-```
-192.168.56.17 wsa-lab7.local
-```
+> If your VM was already running before you added the `forwarded_port` line, run `vagrant reload` on the host to apply it. If `vagrant up` complains that port 3000 is already in use on the host, stop whatever else is using it (another dev server, a previous lab's VM) and try again.
 
 ## Part 2: Scaffold the Express App
 
@@ -49,7 +50,7 @@ cd lab7-oauth
 npm install
 ```
 
-1. Start it and confirm the default page loads at `http://wsa-lab7.local:3000` from your host browser:
+1. Start it and confirm the default page loads at `http://localhost:3000` from your host browser:
 
 ```bash
 npm start
@@ -76,11 +77,13 @@ mv views/error.jade views/error.ejs
 ## Part 3: Register OAuth Credentials with Google
 
 1. Go to [console.developers.google.com](https://console.developers.google.com/project) and create a new project named `wsa-lab7`.
-2. From the sidebar, go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email for support/developer contact, and accept defaults for the remaining screens.
+2. From the sidebar, go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email for support/developer contact, and accept defaults for the remaining screens. Under **Test users**, add the Google account you'll sign in with — while the app is in Testing mode, only listed test users can log in.
 3. Go to **Credentials → Create Credentials → OAuth client ID**. Choose **Web application** and fill in:
    - **Name**: `wsa-lab7`
-   - **Authorized JavaScript origins**: `http://wsa-lab7.local`
-   - **Authorized redirect URIs**: `http://wsa-lab7.local:3000/auth/google/callback`
+   - **Authorized JavaScript origins**: `http://localhost:3000`
+   - **Authorized redirect URIs**: `http://localhost:3000/auth/google/callback`
+
+   The redirect URI must match the `callbackURL` you'll set in Part 4 *exactly* — same scheme, host, port, and path. A mismatch gives a `redirect_uri_mismatch` error at login.
 4. Click **Create**. Copy the **Client ID** and **Client Secret** shown in the popup — you'll need both in Part 4.
 
 **Never commit these values to Git.** In Part 4 you'll load them from environment variables, exactly like the PaaS environment-variable practice from Week 4.
@@ -110,7 +113,7 @@ var GoogleStrategy = require('passport-google-oauth20').Strategy;
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://wsa-lab7.local:3000/auth/google/callback'
+    callbackURL: 'http://localhost:3000/auth/google/callback'
   },
   function(accessToken, refreshToken, profile, cb) {
     cb(null, profile);
@@ -214,7 +217,7 @@ module.exports = router;
 GOOGLE_CLIENT_ID="..." GOOGLE_CLIENT_SECRET="..." npm start
 ```
 
-2. From your host browser, visit `http://wsa-lab7.local:3000` and click **Sign in with Google**.
+2. From your host browser, visit `http://localhost:3000` and click **Sign in with Google**. (Use `localhost`, not `192.168.56.17` — the session cookie and Google's redirect are both tied to `localhost`.)
 3. Complete the Google login/consent screen. You should be redirected back and see "Hi `<your name>`".
 
 **Q1**: At what point in this flow did your app ever see your Google password? Trace through exactly which party (browser, your app, Google) held which piece of information at each step.
