@@ -2,26 +2,24 @@
 
 *COMP 1350 — Web Administration, Week 11*
 
-You've joined a small team whose web server sits in **Singapore**, while most of its visitors are here in Vancouver. Your manager has heard that "a CDN will make it faster" and wants proof before paying for anything, and then wants a CDN the team owns, where a `git push` updates the site's images, CSS and JS with no manual copying.
+Your team's web server is in Ohio, and your manager wants proof that a CDN would make the site faster for visitors here in Vancouver, plus a CDN the team controls.
 
-- **Part 1 (about 75 min):** Run two copies of the same site on AWS EC2. One serves its CSS, JS and image itself. The other serves only its HTML, and every static asset comes from the public jsDelivr CDN. Then measure the difference.
-- **Part 2 (about 90 min):** Build your own CDN with Amazon S3 and Amazon CloudFront, then automate asset updates with GitHub Actions, so pushing a change to `static/` publishes it worldwide.
+- **Part 1 (about 60 min):** Run the same site on two AWS EC2 servers. One serves its own CSS, JS and image. The other serves only the HTML and gets every static asset from the public jsDelivr CDN. Measure the difference.
+- **Part 2 (about 60 min):** Build your own CDN with Amazon S3 and Amazon CloudFront. Then publish asset updates with one command.
 
-**Learning outcomes:** measure and explain CDN performance with real data (latency, edge locations, cache hits and misses); configure a private origin behind a CDN; automate static-asset deployment and cache invalidation.
+**Learning outcomes:** measure and explain CDN performance with real data; put a private origin behind a CDN; automate static-asset updates and cache invalidation.
 
 ## Before You Start
 
 You need:
 
-- A **personal AWS account**. Sign in as an IAM or Identity Center user if you have one, not the root user.
+- A **free AWS account**, the one you created for this course.
 - A **GitHub account** and Git on your laptop.
-- A terminal with `curl` and `ssh`. On macOS or Linux, the built-in Terminal works. On Windows, use **Git Bash** (installed with Git for Windows) or WSL.
+- A terminal with `curl`. On macOS or Linux, the built-in Terminal works. On Windows, use **Git Bash** (installed with Git for Windows).
 
-**Set a budget alert first (2 minutes).** In the AWS console go to **Billing and Cost Management → Budgets → Create budget**, choose the **Zero spend budget** template, and enter your email. If anything you build ever starts costing money, you'll know the same day. If you clean up at the end (see the last section), this lab costs a few cents or nothing, depending on your account's free credits.
+**Stay on the free plan.** Everything in this lab works on a free AWS account. If the console ever asks you to **Upgrade your plan** or **Activate advanced features**, close the dialog. Activating advanced features can't be undone, and it removes the spending limit that protects you. Whenever the console gives you a choice, pick the option labelled **Free tier eligible**.
 
-**Use one region for everything: Asia Pacific (Singapore), `ap-southeast-1`.** Select it in the region menu (top right of the console) before you create anything. CloudFront is global and has no region.
-
-> **Why Singapore?** It is about 12,800 km from Vancouver. Light in fibre covers about 200 km per millisecond, so a round trip can't take less than about 130 ms, and real routes take 160–200 ms. Every new connection costs at least one round trip. A 1.2 MB image costs several more, because TCP starts slowly and speeds up one round trip at a time. Putting the server far away makes the effect large enough to measure clearly. In real life the far-away user might be in Singapore and the server in Vancouver. The physics is the same.
+**Use your account's region.** A free account works in only one region, shown at the top right of the console. For accounts with a Canadian address it's **US East (Ohio), `us-east-2`**. This lab uses `us-east-2` in its examples. If your account shows a different region, use yours everywhere instead. CloudFront is global, so it has no region.
 
 ---
 
@@ -29,24 +27,26 @@ You need:
 
 ### 1.1 Put the Starter Site on GitHub
 
-1. Download the starter site: [lab9-starter.zip](https://codevoyage.dev/Web_Administration_COMP1350/static/lab9-starter.zip). It contains:
+1. Download [lab9-starter.zip](https://codevoyage.dev/Web_Administration_COMP1350/static/lab9-starter.zip). It contains:
 
 ```
 comp1350-lab9-site/
 ├── index.html            the page; loads 5 static assets from /static/...
 ├── static/
-│   ├── vendor/           Bootstrap 5.3.3 CSS + JS (~310 KB)
+│   ├── vendor/           Bootstrap 5.3.3 CSS + JS
 │   ├── css/styles.css    your own CSS
 │   ├── js/app.js         your own JS; shows timing results on the page
-│   └── img/hero.jpg      a ~1.2 MB hero image, like an unoptimized photo
-└── tools/measure.sh      times a URL several times with curl
+│   └── img/hero.jpg      a ~1.2 MB image, like an unoptimized photo
+└── tools/
+    ├── measure.sh        times a URL several times with curl
+    └── deploy.sh         publishes static/ to your own CDN (Part 2)
 ```
 
-The page measures itself. When it finishes loading, it shows a table of every static asset, **which server it came from**, and **how long it took**.
+The page measures itself: when it finishes loading, a table shows each static asset, **which server it came from** and **how long it took**.
 
-2. On GitHub, create a new **public** repository named exactly `comp1350-lab9-site`. Leave it empty: no README, no .gitignore.
+2. On GitHub, create a new **public**, empty repository named exactly `comp1350-lab9-site`.
 
-3. Unzip the starter and push it, replacing `YOUR-GITHUB-USER` with your username:
+3. Unzip the starter and push it, replacing `YOUR-GITHUB-USER` with your username. Then tag the version as `v1`:
 
 ```bash
 unzip lab9-starter.zip
@@ -56,28 +56,23 @@ git add .
 git commit -m "Lab 9 starter site"
 git remote add origin https://github.com/YOUR-GITHUB-USER/comp1350-lab9-site.git
 git push -u origin main
-```
-
-4. Tag this version as `v1`. jsDelivr will serve the files exactly as they are at this tag:
-
-```bash
 git tag v1
 git push origin v1
 ```
 
 ### 1.2 Launch Two EC2 Instances
 
-In the EC2 console (region **Singapore**), click **Launch instances**:
+In the **EC2** console, click **Launch instances**:
 
 | Setting | Value |
 |---|---|
-| Name | `lab9-web` (you'll rename them in a moment) |
-| AMI | **Ubuntu Server 24.04 LTS**, 64-bit (x86) |
-| Instance type | `t3.micro` (or whichever type is labelled **Free tier eligible**) |
-| Key pair | **Create new key pair** → name `lab9-key`, type RSA, format `.pem` → download it |
-| Network settings | **Create security group** named `lab9-web-sg`. Allow **SSH from My IP**. Allow **HTTP from the internet**. |
+| Name | `lab9-web` (you'll rename them after launch) |
+| AMI | **Ubuntu Server 24.04 LTS** (Free tier eligible) |
+| Instance type | the one labelled **Free tier eligible**, usually `t3.micro` |
+| Key pair | **Proceed without a key pair**. You'll connect from the browser. |
+| Network settings | Allow **SSH traffic from Anywhere**, and allow **HTTP traffic from the internet** |
 | Advanced details → User data | Paste the script below, with your GitHub username in it |
-| Number of instances (Summary panel) | **2** |
+| Number of instances (right-hand Summary panel) | **2** |
 
 ```bash
 #!/bin/bash
@@ -89,16 +84,9 @@ git clone https://github.com/YOUR-GITHUB-USER/comp1350-lab9-site.git /home/ubunt
 chown -R ubuntu:ubuntu /home/ubuntu/site
 ```
 
-When both instances show **Running**, rename them by clicking the pencil icon in the **Name** column. Call one `local-static` and the other `cdn-hosted`. Note each one's **Public IPv4 address**.
+When both instances show **Running**, use the pencil icon in the **Name** column to rename them `local-static` and `cdn-hosted`. Note each one's **Public IPv4 address**.
 
-Connect to each instance in its own terminal window:
-
-```bash
-chmod 400 ~/Downloads/lab9-key.pem          # macOS/Linux/Git Bash: once only
-ssh -i ~/Downloads/lab9-key.pem ubuntu@<PUBLIC-IP>
-```
-
-Wait about a minute after boot, then confirm the user data finished: `ls ~/site` should list `index.html` and `static`. If it doesn't, check `sudo tail -50 /var/log/cloud-init-output.log`. The usual cause is a typo in the repository URL. You can then run the `git clone` line yourself as `ubuntu`.
+To open a terminal on an instance, select it, click **Connect**, choose the **EC2 Instance Connect** tab, then click **Connect**. Wait about a minute after the instance boots, then check that `ls ~/site` lists `index.html` and `static`. If it doesn't, the user data probably had a typo in the URL. Run the `git clone` line yourself, without `sudo`.
 
 ### 1.3 Deploy the "Local Assets" Version
 
@@ -106,18 +94,13 @@ Wait about a minute after boot, then confirm the user data finished: `ls ~/site`
 
 ```bash
 sudo cp -r ~/site/index.html ~/site/static /var/www/html/
-sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Open `http://<local-static-IP>` in your browser. Type `http://` yourself. There is no HTTPS on this server, so if Chrome shows a "not secure" warning, click **Continue to site**. Every row in the page's table should say **this server**.
+Open `http://<local-static-IP>`. Type `http://` yourself: there's no HTTPS on this server, so click through any "not secure" warning. In the page's table, every file should say **this server**.
 
 ### 1.4 Deploy the "CDN-Backed" Version
 
-*On `cdn-hosted`:*
-
-1. Rewrite the five asset URLs in `index.html` so they point at jsDelivr instead of this server:
-   - **Bootstrap** comes from jsDelivr's copy of the npm package. Thousands of other sites use the same URL, so it is almost always already cached at the edge.
-   - **Your own CSS, JS and image** come from jsDelivr's GitHub mirror of *your* repository, pinned to the `v1` tag.
+*On `cdn-hosted`:* rewrite the five asset URLs in `index.html` to point at jsDelivr. Bootstrap comes from jsDelivr's copy of the npm package. Your own CSS, JS and image come from jsDelivr's mirror of **your** GitHub repo, pinned to the `v1` tag.
 
 ```bash
 cd ~/site
@@ -130,432 +113,258 @@ sed -i \
   -e "s#\"/static/#\"$GH/static/#g" \
   index.html
 
-grep -n 'cdn.jsdelivr' index.html    # expect exactly 5 lines
+grep -c 'cdn.jsdelivr' index.html                          # expect 5
+sudo cp index.html /var/www/html/                          # deploy ONLY the HTML
+curl -sI http://localhost/static/css/styles.css | head -1  # 404: this server has no assets
 ```
 
-2. Deploy **only** `index.html`. This server no longer hosts any CSS, JS or images:
-
-```bash
-sudo cp ~/site/index.html /var/www/html/
-sudo nginx -t && sudo systemctl reload nginx
-ls /var/www/html                                       # only index.html
-curl -sI http://localhost/static/css/styles.css | head -1   # 404 Not Found: proof
-```
-
-3. Open `http://<cdn-hosted-IP>`. The page should look identical to `local-static`, but the table should now show `cdn.jsdelivr.net` for all five assets.
-
-> **Why pin to `@v1`?** A URL like `.../comp1350-lab9-site@main/...` follows a branch, and jsDelivr caches branch URLs for hours. If you push a change, visitors keep getting the old file and you can't tell which version anyone has. A tag (or commit hash) never changes, so it can be cached forever. You'll handle "how do updates reach the edge?" properly in Part 2.
+Open `http://<cdn-hosted-IP>`. It should look identical to the first site, but the table should show `cdn.jsdelivr.net` for all five files.
 
 ### 1.5 Measure
 
-**A. In the browser (both sites).**
+1. Load `http://<cdn-hosted-IP>` **once** before you measure. That first request makes jsDelivr fetch your files from GitHub and cache them at an edge server near you.
+2. Open an **Incognito/InPrivate** window and open DevTools → **Network**. Tick **Disable cache**.
+3. Hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) **3 times** on each site. Each time, record the **Load** time from the status bar at the bottom of the Network tab:
 
-1. Load `http://<cdn-hosted-IP>` **once** before you measure. That first request makes jsDelivr fetch your files from GitHub and cache them at the edge near you. Note how long that "cold" load took for Q2.
-2. Open an **Incognito/InPrivate** window and open DevTools → **Network**. Tick **Disable cache**, so your browser can't reuse files it already downloaded.
-3. Hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) **5 times** on each site. Each time, record the **Load** time from the Network tab's bottom status bar and the **Time** of the `hero.jpg` row.
+| Run | `local-static` Load (ms) | `cdn-hosted` Load (ms) |
+|---|---|---|
+| 1 | | |
+| 2 | | |
+| 3 | | |
+| **Average** | | |
 
-| Run | `local-static` Load (ms) | `local-static` hero.jpg (ms) | `cdn-hosted` Load (ms) | `cdn-hosted` hero.jpg (ms) |
-|---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| **Average** | | | | |
-
-**B. From the command line.** On your laptop, from inside your `comp1350-lab9-site` folder:
+4. On your laptop, inside your `comp1350-lab9-site` folder, time the image from each source:
 
 ```bash
-bash tools/measure.sh http://<local-static-IP>/static/img/hero.jpg 5
-bash tools/measure.sh https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/comp1350-lab9-site@v1/static/img/hero.jpg 5
+bash tools/measure.sh http://<local-static-IP>/static/img/hero.jpg
+bash tools/measure.sh https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/comp1350-lab9-site@v1/static/img/hero.jpg
 ```
 
-The `connect` column is the time to finish the TCP handshake, which is roughly **one network round trip** to whoever answered.
+The `connect` column is the time for one network round trip to whichever server answered.
 
-**C. Find out which edge answered you.**
+5. Find out which edge server answered you:
 
 ```bash
 curl -sI https://cdn.jsdelivr.net/gh/YOUR-GITHUB-USER/comp1350-lab9-site@v1/static/img/hero.jpg \
-  | grep -i -E 'x-served-by|x-cache|cf-ray|age:'
+  | grep -i -E 'x-served-by|cf-ray'
 ```
 
-jsDelivr runs on more than one CDN. Fastly answers with `x-served-by: ...-YVR` and Cloudflare with `cf-ray: ...-YVR`. Either way, the last three letters are the airport code of the edge location: `YVR` is Vancouver, `SEA` is Seattle.
+The last three letters are an airport code: `YVR` is Vancouver, `SEA` is Seattle.
 
-**Q1**: Compare the average `connect` time to your EC2 instance with the average `connect` time to jsDelivr. Why are they so different? Use your numbers, and say where each server physically is.
+**Q1**: Compare the average `connect` time to your EC2 server with the average to jsDelivr, and say where each server physically is. Why does that difference grow for a 1.2 MB image, which needs many round trips to download?
 
-**Q2**: Which edge location answered your request in step C? Describe the full path `hero.jpg` took on `cdn-hosted` **the very first time** anyone requested it (the cold load in step A.1), and how that path differs on every request after that.
+**Q2**: Describe the path `hero.jpg` took the very first time anyone requested it from jsDelivr (step 1), and how that path is different on every request after that.
 
-**Q3**: A fair test changes only one thing. Run these two commands:
-
-```bash
-curl -sI -H 'Accept-Encoding: br, gzip' http://<local-static-IP>/static/vendor/bootstrap.min.css | grep -i -E 'content-encoding|content-length|cache-control'
-curl -sI -H 'Accept-Encoding: br, gzip' https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css | grep -i -E 'content-encoding|content-length|cache-control'
-```
-
-Besides distance, name **two** differences in how the two servers deliver the same file. Use the output above, and also look at the **Protocol** column in DevTools (right-click a column header to add it). For each difference, say whether you could fix it on your own Nginx server, or whether only a CDN can give you that benefit.
+**Q3**: In the on-page table, `bootstrap.min.css` is about **228 KB** from `local-static` but only about **22 KB** from jsDelivr. It's the same file. What is jsDelivr doing that your Nginx server isn't? Hint: run `curl -sI -H 'Accept-Encoding: br, gzip'` on both URLs and look at `content-encoding`. Could you fix this on your own server?
 
 ---
 
-## Part 2: Build Your Own CDN on AWS and Automate Updates
+## Part 2: Build Your Own CDN on AWS
 
-jsDelivr is great for open-source files in public repositories. Real company assets are often private, need custom cache rules, and must update the moment the team ships a change. In this part you'll build that yourself:
+jsDelivr only serves files from public open-source repos. For your own company's assets, you build the same thing yourself:
 
 ```
- git push ──► GitHub Actions ──► S3 bucket (private origin, Singapore)
-                                         ▲
-                                         │ only CloudFront may read it (OAC)
- browser in Vancouver ──► CloudFront edge (YVR/SEA) ──┘  cache hit? served from the edge
+your files ──► S3 bucket (private origin, Ohio)
+                       ▲
+                       │ only CloudFront is allowed to read it
+browser in Vancouver ──► CloudFront edge (YVR/SEA) ──┘   cached? served straight from the edge
 ```
 
-### 2.1 Create a Private S3 Bucket (the Origin)
+### 2.1 Create a Private S3 Bucket
 
-1. **S3 → Create bucket**, region **Singapore**.
-2. Bucket name: `comp1350-lab9-<yourname>-assets`, for example `comp1350-lab9-jdoe-assets`. Bucket names are global, so pick something unique.
-3. Leave **Block all public access** turned **on**. Nobody, including you in a browser, will be able to read files straight from S3. Only CloudFront will.
-4. Leave everything else as default and click **Create bucket**.
+1. **S3 → Create bucket.**
+2. Name: `comp1350-lab9-<yourname>-assets`, for example `comp1350-lab9-jdoe-assets`. Bucket names are global, so make yours unique.
+3. Leave **Block all public access** turned **on**, and every other setting as default. Click **Create bucket**.
 
-Upload the first copy of your assets from **AWS CloudShell**. Click the terminal icon `>_` at the top of the console. It's a browser shell with the AWS CLI already logged in as you.
+### 2.2 Create a CloudFront Distribution
+
+**CloudFront → Create distribution.** AWS changes this screen's layout often, so the step names may differ. These are the settings that matter:
+
+| Setting | Value |
+|---|---|
+| Pricing plan (if asked) | **Free** |
+| Distribution name | `lab9-assets` |
+| Origin type | **Amazon S3**, then choose your bucket |
+| Origin access | **Allow private S3 bucket access to CloudFront** (recommended). This lets the console add the bucket policy for you. |
+| Cache settings | the recommended defaults |
+| Security protections (WAF) | **Do not enable** (not available on free accounts) |
+
+Create it, then copy the **Distribution domain name** (like `d1a2b3c4d5e6f7.cloudfront.net`) and the **Distribution ID** (like `E2ABCDEF123456`). Wait until **Last modified** shows a date instead of **Deploying**, which usually takes a few minutes.
+
+### 2.3 Publish Your Assets with One Command
+
+Open **AWS CloudShell**: click the `>_` icon at the top of the console. It's a terminal in your browser, already signed in to your account with the AWS CLI installed.
 
 ```bash
 git clone https://github.com/YOUR-GITHUB-USER/comp1350-lab9-site.git
 cd comp1350-lab9-site
-BUCKET=comp1350-lab9-<yourname>-assets
-aws s3 sync static/ "s3://$BUCKET/static/"
-aws s3 ls "s3://$BUCKET/static/" --recursive     # expect 5 files
+BUCKET=comp1350-lab9-<yourname>-assets       # <- yours
+DIST=E2ABCDEF123456                          # <- your distribution ID
+CF=d1a2b3c4d5e6f7.cloudfront.net             # <- your distribution domain
+
+bash tools/deploy.sh "$BUCKET" "$DIST"
 ```
 
-Prove the bucket is private. Expect `403 Forbidden`:
+Read `tools/deploy.sh`. It is only three steps:
+
+1. **`aws s3 sync`** uploads new and changed files and deletes files you removed. Images and libraries are uploaded with `Cache-Control: max-age=86400`, so browsers may reuse them for a day.
+2. A second `sync` uploads CSS and JS with `max-age=300`, so browsers recheck them every 5 minutes.
+3. **`create-invalidation`** tells every CloudFront edge location to discard its cached `/static/*` files, so the next request fetches the new version from S3.
+
+Now prove the bucket is private while CloudFront still works:
 
 ```bash
-curl -sI "https://$BUCKET.s3.ap-southeast-1.amazonaws.com/static/img/hero.jpg" | head -1
+curl -sI "https://$BUCKET.s3.us-east-2.amazonaws.com/static/img/hero.jpg" | head -1   # 403 Forbidden
+curl -sI "https://$CF/static/img/hero.jpg" | head -1                                  # 200 OK
 ```
 
-### 2.2 Create a CloudFront Distribution
+### 2.4 Watch the Edge Cache Work
 
-**CloudFront → Create distribution.** AWS changes this screen's layout often. The step names below may differ slightly, but these are the settings that matter:
-
-| Setting | Value |
-|---|---|
-| Pricing plan (if asked) | **Free** flat-rate plan if your account offers it, otherwise **Pay-as-you-go**. This lab uses a tiny fraction of CloudFront's always-free allowance of 1 TB and 10 million requests per month. |
-| Distribution name | `lab9-assets` |
-| Origin type | **Amazon S3**, then choose your `comp1350-lab9-<yourname>-assets` bucket |
-| Origin access | **Allow private S3 bucket access to CloudFront** / **Origin access control (OAC)**: *recommended*. Let the console update the bucket policy for you. |
-| Cache settings | Use the recommended settings: cache policy **CachingOptimized** |
-| Viewer protocol policy | **Redirect HTTP to HTTPS** |
-| Security / WAF | **Do not enable** for this lab |
-
-Click **Create distribution**. Copy the **Distribution domain name** (like `d1a2b3c4d5e6f7.cloudfront.net`) and the **Distribution ID** (like `E2ABCDEF123456`). Wait until **Last modified** shows a date instead of **Deploying**. This usually takes a few minutes.
-
-Now check the bucket's policy: **S3 → your bucket → Permissions → Bucket policy**. It should look like the policy below. If it's empty, paste this in, replacing the three placeholders. Find your 12-digit account ID in the top-right menu.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowCloudFrontReadOnly",
-      "Effect": "Allow",
-      "Principal": { "Service": "cloudfront.amazonaws.com" },
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::BUCKET-NAME/*",
-      "Condition": {
-        "StringEquals": {
-          "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT-ID:distribution/DISTRIBUTION-ID"
-        }
-      }
-    }
-  ]
-}
-```
-
-### 2.3 Watch the Edge Cache Work
-
-On your laptop, inside your repo folder:
+On your **laptop**, not CloudShell, which runs inside AWS:
 
 ```bash
-CF=d1a2b3c4d5e6f7.cloudfront.net        # <- your distribution domain
-
-# Run 1 should be a cache MISS: the edge has to fetch from Singapore.
-# Runs 2-5 should be HITs: served straight from the edge near you.
-bash tools/measure.sh "https://$CF/static/img/hero.jpg" 5
-
-# Now look at the headers, twice in a row:
-curl -sI "https://$CF/static/css/styles.css" | grep -i -E 'x-cache|x-amz-cf-pop|age:'
-curl -sI "https://$CF/static/css/styles.css" | grep -i -E 'x-cache|x-amz-cf-pop|age:'
+CF=d1a2b3c4d5e6f7.cloudfront.net                       # <- yours
+bash tools/measure.sh "https://$CF/static/img/hero.jpg"  # run 1 = cache miss, runs 2-5 = hits
+curl -sI "https://$CF/static/css/styles.css" | grep -i -E 'x-cache|x-amz-cf-pop'
+curl -sI "https://$CF/static/css/styles.css" | grep -i -E 'x-cache|x-amz-cf-pop'
 ```
 
-The first `curl -sI` should say `x-cache: Miss from cloudfront` and the second `Hit from cloudfront`. `x-amz-cf-pop` names the edge location, using airport codes again (for example `YVR52-P1` or `SEA900-P2`). If run 1 isn't a miss, you requested that file earlier, which is fine.
+The first `curl -sI` should say `Miss from cloudfront` and the second `Hit from cloudfront`. `x-amz-cf-pop` names the edge location, using an airport code again, for example `YVR52-P1`.
 
-**Q4**: Using your `measure.sh` output, compare run 1 (miss) with the average of runs 2–5 (hits), and with your `local-static` EC2 numbers from Part 1. Why is a cache **miss** through CloudFront about as slow as going to the origin directly?
+**Q4**: Compare run 1 (miss) with runs 2–5 (hits), and with `local-static`'s numbers from Part 1. Why is a cache miss about as slow as going straight to the origin?
 
-### 2.4 Point the CDN-Backed Site at Your Own CDN
+**Q5**: The direct S3 URL returned `403`, but CloudFront could read the same file. What gives CloudFront that access? Name one security or cost problem it prevents compared with a public bucket.
 
-*On `cdn-hosted`:* swap your own three files from jsDelivr to CloudFront. Bootstrap stays on jsDelivr's shared copy.
+### 2.5 Switch the Site to Your CDN and Ship an Update
+
+1. *On `cdn-hosted`:* point your three own files at CloudFront. Bootstrap stays on jsDelivr.
 
 ```bash
 cd ~/site
-CF=d1a2b3c4d5e6f7.cloudfront.net        # <- your distribution domain
+CF=d1a2b3c4d5e6f7.cloudfront.net        # <- yours
 sed -i "s#https://cdn.jsdelivr.net/gh/[^/]*/comp1350-lab9-site@v1#https://$CF#g" index.html
-grep -n "$CF" index.html                # expect 3 lines: styles.css, hero.jpg, app.js
+grep -c "$CF" index.html                # expect 3
 sudo cp index.html /var/www/html/
 ```
 
 Reload `http://<cdn-hosted-IP>`. The table should now show your `….cloudfront.net` domain for `styles.css`, `hero.jpg` and `app.js`.
 
-**Q5**: The direct S3 URL in 2.1 returned `403`, yet CloudFront can read the same file. Explain what origin access control (OAC) and the bucket policy are doing. Then give one **security** or **cost** problem that would exist if the bucket were public and attackers could skip CloudFront and download from it directly.
+2. **Make a change.** On GitHub, edit the files directly with the pencil icon and commit each one to `main`:
+   - `static/css/styles.css`: change `--accent: #0d6efd;` to another colour, for example `#d63384`
+   - `static/js/app.js`: change `const ASSET_VERSION = "v1";` to `"v2"`
 
-### 2.5 Let GitHub Deploy to AWS Without Storing Any Keys (OIDC)
+3. **Publish it.** In CloudShell:
 
-GitHub Actions needs permission to write to your bucket and clear CloudFront's cache. The old way was to create an AWS access key and paste it into GitHub as a secret. The modern way is **OIDC**: on each run, GitHub gives the job a signed, short-lived token that says "I am a workflow in repo X on branch main." AWS checks that token and hands back credentials that expire within an hour. Nothing long-lived is stored anywhere.
-
-**1. Tell AWS to trust GitHub's tokens.** Go to **IAM → Identity providers → Add provider**:
-
-- Provider type: **OpenID Connect**
-- Provider URL: `https://token.actions.githubusercontent.com`
-- Audience: `sts.amazonaws.com`
-
-**2. Create the role that the workflow will assume.** Go to **IAM → Roles → Create role**:
-
-- Trusted entity type: **Web identity**
-- Identity provider: `token.actions.githubusercontent.com`, Audience: `sts.amazonaws.com`
-- GitHub organization: *your GitHub username*. GitHub repository: `comp1350-lab9-site`. GitHub branch: `main`.
-- On the permissions step, attach **nothing** and click **Next**.
-- Role name: `lab9-github-deploy`, then **Create role**.
-
-Open the new role → **Trust relationships**. It should contain a condition like this. It means *only* workflows on the `main` branch of *your* repository can use this role:
-
-```json
-"Condition": {
-  "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
-  "StringLike":   { "token.actions.githubusercontent.com:sub": "repo:YOUR-GITHUB-USER/comp1350-lab9-site:ref:refs/heads/main" }
-}
+```bash
+cd ~/comp1350-lab9-site
+git pull
+bash tools/deploy.sh "$BUCKET" "$DIST"
 ```
 
-**3. Give the role only what the deploy needs.** On the role, go to **Permissions → Add permissions → Create inline policy → JSON**. Paste the policy below with your three values filled in, and name it `lab9-deploy-static`:
+(If CloudShell was closed in the meantime, set `BUCKET` and `DIST` again first.)
+
+4. Reload `http://<cdn-hosted-IP>` with **Disable cache** ticked. It should show **v2** in your new colour, and you never logged into a web server. `local-static` still shows **v1**: someone would have to copy files onto it by hand.
+
+**Q6**: A visitor who loaded the page just before your update may still see the old CSS for up to 5 minutes, even though the invalidation finished. Why, and which setting in `deploy.sh` controls it? Large sites often put a fingerprint in each filename instead (`styles.3f9a1c.css`) and never invalidate. Explain how that avoids the problem.
+
+---
+
+## Stretch Goals (Optional)
+
+**Deploy on every `git push` with GitHub Actions.** GitHub needs AWS credentials to run `deploy.sh` for you. The best practice is OIDC, which avoids stored keys, but free AWS accounts block it. So this goal uses an access key:
+
+1. **IAM → Users → Create user** named `lab9-deployer`, with no console access and no policies.
+2. On the user, go to **Permissions → Add permissions → Create inline policy → JSON**. Paste the policy below with your values filled in:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Sid": "ListTheBucket",
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::BUCKET-NAME"
-    },
-    {
-      "Sid": "WriteStaticAssetsOnly",
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::BUCKET-NAME/static/*"
-    },
-    {
-      "Sid": "ClearThisDistributionsCache",
-      "Effect": "Allow",
-      "Action": ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
-      "Resource": "arn:aws:cloudfront::ACCOUNT-ID:distribution/DISTRIBUTION-ID"
-    }
+    { "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::BUCKET-NAME" },
+    { "Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": "arn:aws:s3:::BUCKET-NAME/static/*" },
+    { "Effect": "Allow", "Action": ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
+      "Resource": "arn:aws:cloudfront::ACCOUNT-ID:distribution/DISTRIBUTION-ID" }
   ]
 }
 ```
 
-Copy the role's **ARN** from its summary page (`arn:aws:iam::123456789012:role/lab9-github-deploy`).
-
-**4. Give the workflow its settings.** In your GitHub repo, go to **Settings → Secrets and variables → Actions → Variables** tab and add four **repository variables**. None of these values are secret: without GitHub's signed token, the role ARN is useless.
-
-| Name | Value |
-|---|---|
-| `AWS_ROLE_ARN` | the role ARN you just copied |
-| `AWS_REGION` | `ap-southeast-1` |
-| `S3_BUCKET` | `comp1350-lab9-<yourname>-assets` |
-| `CF_DISTRIBUTION_ID` | your distribution ID, like `E2ABCDEF123456` |
-
-### 2.6 Write the Deploy Workflow
-
-On your laptop, in your repo, create `.github/workflows/deploy-static.yml`:
+3. **Security credentials → Create access key**, use case **Third-party service**. In your GitHub repo, go to **Settings → Secrets and variables → Actions** and add secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. On the **Variables** tab, add `S3_BUCKET` and `CF_DISTRIBUTION_ID`.
+4. Add `.github/workflows/deploy.yml`:
 
 ```yaml
 name: Deploy static assets
-
 on:
   push:
     branches: [main]
-    paths: ["static/**"]     # only run when an asset actually changed
-  workflow_dispatch:         # adds a "Run workflow" button for manual runs
-
-permissions:
-  id-token: write            # allow the job to request GitHub's OIDC token
-  contents: read
-
-concurrency:
-  group: deploy-static       # two pushes in a row deploy one after the other, never at once
-
+    paths: ["static/**"]
+  workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v5
-
-      - name: Get short-lived AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Upload images and vendor libraries (browsers may cache 1 day)
-        run: |
-          aws s3 sync static/ "s3://${{ vars.S3_BUCKET }}/static/" --delete \
-            --exclude "*" --include "img/*" --include "vendor/*" \
-            --cache-control "public, max-age=86400"
-
-      - name: Upload our own CSS and JS (browsers may cache 5 minutes)
-        run: |
-          aws s3 sync static/ "s3://${{ vars.S3_BUCKET }}/static/" --delete \
-            --exclude "img/*" --exclude "vendor/*" \
-            --cache-control "public, max-age=300"
-
-      - name: Clear CloudFront's cached copies
-        run: |
-          ID=$(aws cloudfront create-invalidation \
-                 --distribution-id "${{ vars.CF_DISTRIBUTION_ID }}" \
-                 --paths "/static/*" \
-                 --query Invalidation.Id --output text)
-          echo "Invalidation $ID created; waiting for every edge location to drop its copy..."
-          aws cloudfront wait invalidation-completed \
-            --distribution-id "${{ vars.CF_DISTRIBUTION_ID }}" --id "$ID"
-          echo "Done. The next request at each edge fetches the new files from S3."
+      - uses: actions/checkout@v5
+      - run: bash tools/deploy.sh "${{ vars.S3_BUCKET }}" "${{ vars.CF_DISTRIBUTION_ID }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
 ```
 
-What each step does:
+5. Change `ASSET_VERSION` to `"v3"` on GitHub and watch the **Actions** tab publish it with no CloudShell. **Delete the access key** when you're done: a leaked long-lived key is the main risk of this method.
 
-- **`aws s3 sync --delete`** uploads new or changed files and removes files from the bucket that you deleted from the repo. Each `sync` only touches the files its `--include`/`--exclude` filters select.
-- **`--cache-control`** stores a header with each file. It tells browsers, and CloudFront, how long they may reuse the file without checking again.
-- **`create-invalidation`** tells every CloudFront edge location to throw away its cached `/static/*` files, so the next visitor gets the new version from S3. One wildcard path counts as one invalidation, and the first 1,000 invalidation paths each month are free.
-
-Commit and push it:
+**Simulate a server on the other side of the world.** On both EC2 instances, add 150 ms of delay to every packet the server sends, then repeat the Part 1 measurement:
 
 ```bash
-git add .github/workflows/deploy-static.yml
-git commit -m "Deploy static assets to S3 + CloudFront"
-git push
+sudo tc qdisc add dev $(ip route show default | awk '{print $5}') root netem delay 150ms   # add
+sudo tc qdisc del dev $(ip route show default | awk '{print $5}') root                    # remove
 ```
 
-This push didn't change anything in `static/`, so the workflow won't start by itself. Start it manually: in your repo, go to **Actions → Deploy static assets → Run workflow → Run workflow**. Watch the run. Every step should get a green check. This proves the OIDC role and permissions work before you depend on them.
-
-### 2.7 Ship a Change with `git push`
-
-1. Make two visible changes:
-   - In `static/css/styles.css`, change `--accent: #0d6efd;` to another colour, for example `--accent: #d63384;`
-   - In `static/js/app.js`, change `const ASSET_VERSION = "v1";` to `"v2"`
-
-2. Note the time, then push:
-
-```bash
-git add static/
-git commit -m "v2: new accent colour"
-git push
-```
-
-3. Watch the run in the **Actions** tab. When it's green, confirm the edge is serving the new file:
-
-```bash
-curl -s "https://$CF/static/js/app.js" | grep ASSET_VERSION      # "v2"
-curl -sI "https://$CF/static/js/app.js" | grep -i -E 'x-cache|cache-control'
-```
-
-4. Reload `http://<cdn-hosted-IP>` with DevTools **Disable cache** ticked. The version label should read **v2**, in the new colour. You never logged into a server, and you never touched S3 or CloudFront by hand.
-
-5. For comparison, reload `http://<local-static-IP>`. It still shows **v1**: someone would have to SSH in and copy files again. jsDelivr's `@v1` URLs also still serve v1, by design.
-
-**Q6**: Your workflow got into AWS without any access key stored in GitHub. Give **two** reasons this is safer than creating an IAM user's access key and saving it as a GitHub secret. Then explain what the `sub` condition in the role's trust policy prevents: what would happen if someone forked your repository and ran the same workflow?
-
-**Q7**: The invalidation finished within about a minute, but a visitor who loaded your page right before your push might still see the **old** CSS for a while.
-
-- (a) Why? Which header from your workflow decides how long?
-- (b) Many large sites never invalidate. Instead they put a content hash in each filename, for example `styles.3f9a1c.css`, and cache every file for a year. Explain how that solves (a), and what has to change in `index.html` on every deploy.
-- (c) Compare the three update methods you've now seen: manual copy (`local-static`), pinned tag (jsDelivr `@v1`), and push-to-deploy (CloudFront). Which would you choose for your group project's static assets, and why?
-
-## Stretch Goals (Optional)
-
-- **Make the test fairer.** On `local-static`, enable gzip for CSS and JS in `/etc/nginx/nginx.conf` by uncommenting `gzip_types` and including `text/css` and `application/javascript`. Reload Nginx and repeat the Part 1 measurement. How much of the gap closes, and how much can never close?
-- **Prove the trust policy.** Create a branch named `test`, change a file in `static/` on it, and run the workflow on that branch from the **Run workflow** menu. It should fail at the credentials step with `Not authorized to perform sts:AssumeRoleWithWebIdentity`. Screenshot that: it's your trust policy doing its job.
-- **Use a real domain.** If you have one, attach `assets.yourdomain.com` to your distribution with a free ACM certificate. The certificate must be requested in `us-east-1` for CloudFront.
+The CDN-backed site barely slows down, because only its HTML comes from the "far" server.
 
 ---
 
-## The Same Thing on Azure (Read Only, No Deliverable)
-
-Every major cloud has the same building blocks under different names. If a future employer runs on Azure:
+## The Same Thing on Azure (For Reference)
 
 | What it does | AWS (this lab) | Azure |
 |---|---|---|
-| Stores the original files (origin) | S3 bucket | Storage account → Blob container |
-| Edge caching network | CloudFront | **Azure Front Door** (Standard or Premium tier) |
-| Only the CDN may read the origin | Origin access control + bucket policy | Private Link origin (Premium tier only). On Standard, the origin must be publicly readable. |
-| CI/CD signs in without stored keys | IAM OIDC provider + role | Entra ID app registration + **federated credential** for your repo/branch |
-| Upload changed files | `aws s3 sync` | `az storage blob sync` (or `azcopy sync`) |
+| Stores the original files | S3 bucket | Storage account (Blob container) |
+| Edge caching network | CloudFront | Azure Front Door |
+| Upload changed files | `aws s3 sync` | `az storage blob sync` |
 | Clear the edge cache | `aws cloudfront create-invalidation` | `az afd endpoint purge` |
-| GitHub Action to sign in | `aws-actions/configure-aws-credentials` | `azure/login` |
 
-The deploy steps of an equivalent workflow look like this:
-
-```yaml
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - run: |
-          az storage blob sync --account-name "${{ vars.STORAGE_ACCOUNT }}" \
-            --container assets --source static --destination static --auth-mode login
-          az afd endpoint purge --resource-group "${{ vars.RESOURCE_GROUP }}" \
-            --profile-name "${{ vars.AFD_PROFILE }}" --endpoint-name "${{ vars.AFD_ENDPOINT }}" \
-            --content-paths "/static/*"
-```
-
-Why this lab uses AWS: Microsoft's older, cheaper "Azure CDN Standard from Microsoft (classic)" no longer accepts new profiles and retires in September 2027. Its replacement, Front Door Standard, charges a monthly base fee even with no traffic. CloudFront's always-free allowance covers a student project for $0.
+The ideas are identical. This lab uses AWS because Azure Front Door charges a monthly base fee, while CloudFront is free at this scale.
 
 ---
 
 ## Clean Up
 
-| Resource | What to do | Why |
-|---|---|---|
-| Both EC2 instances | **EC2 → Instances → select both → Instance state → Terminate** | They bill every hour they run, including their public IPv4 addresses |
-| Security group, key pair | Delete after the instances are gone (optional) | Free, but tidy |
-| CloudFront distribution, S3 bucket, IAM role | **Keep them** if you'll use this CDN for Milestone C. Idle, they cost nothing. Otherwise: **disable** the distribution, wait for it to finish deploying, then **delete** it. **Empty** the bucket, then **delete** it. Delete the `lab9-github-deploy` role and the GitHub identity provider. | No leftover resources, no surprise bills |
+- **EC2 → Instances →** select both **→ Instance state → Terminate.** Running instances use up your free credits every hour.
+- **Keep** the S3 bucket and CloudFront distribution if you'll use them for the group project. They cost nothing when idle. Otherwise: **disable** the distribution, wait until it finishes deploying, **delete** it, then **empty** and **delete** the bucket.
+- If you did the GitHub Actions stretch goal, delete the `lab9-deployer` access key, or the whole user.
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
+| Symptom | Fix |
 |---|---|
-| Browser can't reach `http://<IP>` | Security group missing **HTTP from anywhere**. Or you typed `https://`. Or Nginx isn't running: `systemctl status nginx` |
-| `ssh` hangs, then times out | Your IP changed (new Wi-Fi), so **SSH from My IP** no longer matches. Edit the security group rule. |
-| jsDelivr returns 404 | Repository isn't public, the `v1` tag wasn't pushed (`git push origin v1`), or the path's capitalization doesn't match |
-| CloudFront returns **403 AccessDenied** | Bucket policy missing or wrong (see 2.2). Or the file isn't in the bucket. Because the policy doesn't grant `ListBucket`, a missing file returns 403, not 404. |
-| Actions fails: `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The trust policy's `sub` doesn't match your repo/branch exactly (check the username's capitalization). Or the workflow is missing `id-token: write`. Or `AWS_ROLE_ARN` is wrong. |
-| Actions fails: `AccessDenied` on `s3 sync` or `CreateInvalidation` | A typo in the inline policy's bucket name, account ID or distribution ID |
-| `git push` rejected: "refusing to allow … to create or update workflow" | Your Git login token lacks the `workflow` scope. Create the file in GitHub's web editor instead (**Add file → Create new file**). |
-| Page still shows v1 after a green run | Your browser cached `app.js`. Tick **Disable cache** in DevTools and reload. |
+| "Region unavailable" dialog | Free accounts use one region. Close the dialog and switch back to your account's region. Don't activate advanced features. |
+| Browser can't reach `http://<IP>` | Make sure you typed `http://`, not `https://`. Check the security group allows **HTTP**. |
+| `ls ~/site` is empty | A typo in the user data URL. Run the `git clone` line yourself. |
+| jsDelivr returns 404 | Make sure the repo is **public**, you pushed the tag (`git push origin v1`), and the path's capitalization matches. |
+| CloudFront returns 403 | The bucket policy is missing (re-check **Origin access** in 2.2), or `deploy.sh` hasn't run yet. |
+| Page still shows v1 after deploying | Your browser cached `app.js`. Tick **Disable cache** in DevTools and reload. |
 
 ## Deliverables
 
 **Part 1**
 
-- Screenshot of each site's on-page asset table: `local-static` showing **this server**, `cdn-hosted` showing **cdn.jsdelivr.net**
-- Output of `curl -sI http://localhost/static/css/styles.css` on `cdn-hosted` showing the 404
-- Your completed measurement table from 1.5A
-- `measure.sh` output for `hero.jpg` from both sources (1.5B), and the edge-location header from 1.5C
-- Written answers to Q1–Q3
+- Screenshots of both sites' on-page tables: **this server** for `local-static`, **cdn.jsdelivr.net** for `cdn-hosted`
+- The `404` output from 1.4
+- Your measurement table, the two `measure.sh` outputs, and the edge header from 1.5
+- Answers to Q1–Q3
 
 **Part 2**
 
-- Output showing the direct S3 URL returning `403`, and CloudFront returning `Hit from cloudfront` with an `x-amz-cf-pop` header
-- `measure.sh` output against CloudFront (2.3)
-- Screenshot of the `cdn-hosted` page's table showing your `….cloudfront.net` domain
-- Link to your GitHub repository, which shows `.github/workflows/deploy-static.yml`
-- Screenshot of the **successful Actions run** triggered by your v2 push, and the time from `git push` to the change appearing on the page
-- Before/after screenshots of the `cdn-hosted` page showing **v1** and then **v2** in the new colour
-- Written answers to Q4–Q7
+- The `403` (S3) and `200` (CloudFront) outputs from 2.3
+- The `measure.sh` output and the Miss/Hit headers from 2.4
+- Screenshots of the `cdn-hosted` page before (**v1**) and after (**v2**) your update
+- Answers to Q4–Q6

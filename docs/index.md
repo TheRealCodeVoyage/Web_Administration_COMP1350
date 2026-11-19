@@ -85,7 +85,7 @@ By the end of this course, students will be able to:
 - **Deployment:** GitHub Pages, PaaS (Render / Vercel / Netlify)
 - **Security:** OpenSSL, Let's Encrypt / Certbot, OAuth 2.0 with Passport.js
 - **Availability:** HAProxy, Nginx `upstream`, keepalived / VRRP concepts
-- **Performance:** jsDelivr, AWS EC2, Amazon S3 + CloudFront, GitHub Actions
+- **Performance:** jsDelivr, AWS EC2, Amazon S3 + CloudFront
 - **Observability:** rsyslog centralized logging, Google Analytics 4
 
 ## Getting Started
