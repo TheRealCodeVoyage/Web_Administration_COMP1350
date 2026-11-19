@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COMP 1350 · Lab 9 · CDN speed test</title>
+
+  <!-- STATIC ASSET 1 of 5: Bootstrap CSS -->
+  <link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
+  <!-- STATIC ASSET 2 of 5: your own CSS -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <header class="hero">
+    <!-- STATIC ASSET 3 of 5: hero image (~1.2 MB, like an unoptimized photo) -->
+    <img class="hero-img" src="/static/img/hero.jpg" alt="Mountains at dusk" width="2400" height="1200">
+    <div class="hero-text container">
+      <p class="eyebrow">COMP 1350 · Lab 9</p>
+      <h1>CDN speed test</h1>
+      <p class="lead mb-0">Where did each file on this page come from, and how long did it take?</p>
+    </div>
+  </header>
+
+  <main class="container my-4">
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat">
+          <div class="stat-label">Page fully loaded</div>
+          <div class="stat-value" id="page-load">…</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat">
+          <div class="stat-label">HTML served by</div>
+          <div class="stat-value stat-small" id="html-host">…</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat accent-border">
+          <div class="stat-label">Asset version</div>
+          <div class="stat-value" id="asset-version">…</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="h5">Static assets on this page</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr><th>File</th><th>Served from</th><th class="text-end">Time</th><th class="text-end">Transferred</th></tr>
+        </thead>
+        <tbody id="resources">
+          <tr><td colspan="4">Measuring…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-body-secondary">
+      Numbers come from your browser's Resource Timing API. "hidden" means the other server
+      did not send a <code>Timing-Allow-Origin</code> header, so the browser won't reveal the size.
+      For a fair test, keep DevTools open with <strong>Disable cache</strong> ticked.
+    </p>
+
+    <button class="btn btn-outline-secondary btn-sm" type="button"
+            data-bs-toggle="collapse" data-bs-target="#about">About this page</button>
+    <div class="collapse mt-2" id="about">
+      <p class="small mb-0">
+        This button uses Bootstrap's JavaScript, so if it works, <code>bootstrap.bundle.min.js</code>
+        loaded correctly. The accent colour and the version label come from your own CSS and JS,
+        which you'll change in Part 2 to prove your automated deploy works.
+      </p>
+    </div>
+  </main>
+
+  <!-- STATIC ASSET 4 of 5: Bootstrap JS -->
+  <script src="/static/vendor/bootstrap.bundle.min.js"></script>
+  <!-- STATIC ASSET 5 of 5: your own JS -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -21,7 +21,7 @@ Everything students need for hands-on work lives here. Slides, quizzes, and exam
 | Week 7 | 6 | [OAuth Login with Passport.js](labs/Lab_06.html) |
 | Week 9 | 7 | [Load Balancing with HAProxy](labs/Lab_07.html) |
 | Week 10 | 8 | [Eliminating Single Points of Failure](labs/Lab_08.html) |
-| Week 11 | 9 | [CDN — jsDelivr Latency Test & Cloudflare Setup](labs/Lab_09.html) |
+| Week 11 | 9 | [CDN — Prove the Speed-Up, Then Build Your Own on AWS](labs/Lab_09.html) |
 | Week 12 | 10 | [Centralized Logging](labs/Lab_10.html) |
 
 ## Online Activities (Flipped Material)
@@ -85,7 +85,7 @@ By the end of this course, students will be able to:
 - **Deployment:** GitHub Pages, PaaS (Render / Vercel / Netlify)
 - **Security:** OpenSSL, Let's Encrypt / Certbot, OAuth 2.0 with Passport.js
 - **Availability:** HAProxy, Nginx `upstream`, keepalived / VRRP concepts
-- **Performance:** jsDelivr, Cloudflare
+- **Performance:** jsDelivr, AWS EC2, Amazon S3 + CloudFront, GitHub Actions
 - **Observability:** rsyslog centralized logging, Google Analytics 4
 
 ## Getting Started

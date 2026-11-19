@@ -18,6 +18,7 @@ Re-running is safe: generated pages are overwritten from source every time.
 
 from pathlib import Path
 import sys
+import zipfile
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS = REPO_ROOT / "docs"
@@ -36,7 +37,7 @@ LABS = [
     ("Week-07/Lab6-OAuth.md",                     "Lab_06.md", "Lab 6: OAuth Login with Passport.js"),
     ("Week-09/Lab7-HAProxy-LoadBalancing.md",     "Lab_07.md", "Lab 7: Load Balancing with HAProxy"),
     ("Week-10/Lab8-SPOF-Redundancy.md",           "Lab_08.md", "Lab 8: Eliminating Single Points of Failure"),
-    ("Week-11/Lab9-CDN-Cloudflare.md",           "Lab_09.md", "Lab 9: CDN — jsDelivr Latency Test & Cloudflare Setup"),
+    ("Week-11/Lab9-CDN-AWS.md",                   "Lab_09.md", "Lab 9: CDN — Prove the Speed-Up, Then Build Your Own on AWS"),
     ("Week-12/Lab10-Centralized-Logging.md",      "Lab_10.md", "Lab 10: Centralized Logging"),
 ]
 
@@ -52,6 +53,12 @@ ONLINE_ACTIVITIES = [
     ("Week-10/OA9-SPOF-HA-Recap.md",              "OA_09.md", "Online Activity 9: SPOF & High Availability Recap"),
     ("Week-11/OA10-CDN-Recap.md",                 "OA_10.md", "Online Activity 10: CDN Recap"),
     ("Week-12/OA11-Logging-Analytics-Recap.md",   "OA_11.md", "Online Activity 11: Logging & Analytics Recap"),
+]
+
+# Starter folders that labs link to as downloads. Each is zipped into
+# docs/static/<zip name>, with every file placed under <top-level folder>/.
+STARTER_ZIPS = [
+    ("Week-11/lab9-starter", "lab9-starter.zip", "comp1350-lab9-site"),
 ]
 
 PROJECTS = [
@@ -110,6 +117,34 @@ def sync(entries, subdir: str, back_label: str) -> int:
     return written
 
 
+def build_zips() -> int:
+    """Zip each starter folder deterministically (fixed timestamps, sorted
+    entries) so re-running the script doesn't change the zip in git."""
+    out_dir = DOCS / "static"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    built = 0
+    for rel_source, zip_name, top in STARTER_ZIPS:
+        source = REPO_ROOT / rel_source
+        if not source.is_dir():
+            sys.exit(f"Missing starter folder: {rel_source}")
+        files = sorted(
+            f for f in source.rglob("*")
+            if f.is_file() and f.name not in (".DS_Store", "Thumbs.db", "desktop.ini")
+            and not f.name.startswith("._")
+        )
+        with zipfile.ZipFile(out_dir / zip_name, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in files:
+                info = zipfile.ZipInfo(f"{top}/{f.relative_to(source).as_posix()}",
+                                       date_time=(2026, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                mode = 0o755 if f.suffix == ".sh" else 0o644
+                info.external_attr = (0o100000 | mode) << 16
+                zf.writestr(info, f.read_bytes())
+        print(f"  {rel_source}/  ->  docs/static/{zip_name}  ({len(files)} files)")
+        built += 1
+    return built
+
+
 def main() -> None:
     print("Syncing labs...")
     n_labs = sync(LABS, "labs", "Back to course index")
@@ -117,9 +152,11 @@ def main() -> None:
     n_oa = sync(ONLINE_ACTIVITIES, "online-activities", "Back to course index")
     print("Syncing projects...")
     n_proj = sync(PROJECTS, "projects", "Back to course index")
+    print("Building starter zips...")
+    n_zip = build_zips()
     print(
         f"\nDone. {n_labs} labs, {n_oa} online activities, and {n_proj} project "
-        f"page(s) written to docs/."
+        f"page(s) written to docs/; {n_zip} starter zip(s) built."
     )
     print("Slides, quizzes, exams, and planning documents were not touched.")
 

@@ -22,4 +22,4 @@ Load balancing and redundancy (Weeks 9-10) solved availability within your own i
 ## How This Feeds Forward
 
 - These questions form part of **Quiz 10**, given in Week 11.
-- Week 11's lecture and lab have you measure real latency differences serving assets locally vs. via jsDelivr, then set up Cloudflare's free tier in front of a live site.
+- Week 11's lecture and lab have you measure the real latency difference between two AWS EC2 servers, one serving its own assets and one using jsDelivr, then build your own CDN with Amazon S3 + CloudFront and automate asset updates with GitHub Actions. Bring a personal AWS account and a GitHub account.
